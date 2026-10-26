@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life PMS — Enterprise Projects Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- TOP NAVIGATION BAR (Exact Zoho Projects & Linear Style) -->
+        <header class="navbar zoho-top-navbar">
+            <div class="nav-left-group">
+                <!-- Zoho Color Logo & Projects Switcher Dropdown -->
+                <div class="brand-dropdown-wrapper">
+                    <div class="zoho-brand-btn" id="btnProjectsDropdown" title="Switch Project / Workspace">
+                        <span class="zoho-logo-quad">
+                            <span class="zoho-square red"></span>
+                            <span class="zoho-square green"></span>
+                            <span class="zoho-square blue"></span>
+                            <span class="zoho-square yellow"></span>
+                        </span>
+                        <span class="zoho-brand-title">Projects</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <!-- Workspace Project Switcher Popover -->
+                    <div class="projects-popover-dropdown" id="projectsDropdownMenu" style="display:none;">
+                        <div class="popover-dropdown-header" style="display:flex; justify-content:space-between; align-items:center;">
+                            <span>Active Projects</span>
+                            <button type="button" class="btn-text-action" id="btnOpenCreateProjectModal" style="color:var(--theme-sky); font-size:11px;">+ New</button>
+                        </div>
+                        <div class="popover-dropdown-list" id="popoverProjectsList"></div>
+                    </div>
+                </div>
+
+                <!-- Sidebar Toggle Hamburger -->
+                <button type="button" class="sidebar-toggle-btn" id="btnToggleSidebar" title="Toggle Sidebar">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+
+                <div class="nav-vertical-divider"></div>
+
+                <!-- Active Project Identifier -->
+                <div class="active-project-tag">
+                    <span class="project-title-text" id="navbarCurrentProjectName">WE-11 AI Training</span>
+                    <button type="button" class="project-meta-icon" id="btnProjectOptions" title="Project Options">•••</button>
+                    <button type="button" class="project-meta-icon" id="btnPublicShareLink" title="Public Share & iCal Feed">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </button>
+                </div>
+
+                <!-- TOP BAR MODULE NAVIGATION TABS (54 Screens Hub) -->
+                <nav class="top-nav-tabs" id="topNavTabs">
+                    <button type="button" class="top-tab-item active" data-view="home">Dashboard</button>
+                    <button type="button" class="top-tab-item" data-view="tasks">Tasks</button>
+                    <button type="button" class="top-tab-item" data-view="issues">Issues</button>
+                    <button type="button" class="top-tab-item" data-view="phases">Phases</button>
+                    <button type="button" class="top-tab-item" data-view="finance">Timesheets & Finance</button>
+                    <button type="button" class="top-tab-item" data-view="documents">Documents</button>
+                    <button type="button" class="top-tab-item" data-view="team">Team & Roles</button>
+                    <button type="button" class="top-tab-item" data-view="reports">Reports</button>
+                    <button type="button" class="top-tab-item" data-view="automation">Automation</button>
+                    <button type="button" class="top-tab-item" data-view="creative">AI & Labs</button>
+                </nav>
+            </div>
+
+            <!-- Top Right Action Controls -->
+            <div class="nav-right-group">
+                <!-- Quick Create + -->
+                <button type="button" class="icon-control-btn" id="btnHeaderAddTask" title="Quick Add Task (Hotkey: C)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </button>
+
+                <!-- Global Command Palette Search (Cmd+K / Ctrl+K) -->
+                <button type="button" class="cmd-k-search-btn" id="btnTriggerCommandPalette" title="Search Everything (Ctrl+K)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span class="cmd-k-text">Search...</span>
+                    <kbd class="cmd-k-kbd">Ctrl K</kbd>
+                </button>
+
+                <!-- Notification Bell with Count Badge -->
+                <div class="notification-bell-wrap" id="btnToggleNotifications" title="Notifications">
+                    <button type="button" class="icon-control-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </button>
+                    <span class="bell-red-badge" id="navbarNotifBadge">4</span>
+                </div>
+
+                <!-- Live Stopwatch -->
+                <div class="header-stopwatch" id="headerStopwatch">
+                    <span class="stopwatch-icon">⏱</span>
+                    <span class="stopwatch-display" id="stopwatchDisplay">00:00:00</span>
+                    <button class="stopwatch-btn" id="btnStopwatchToggle" title="Start/Pause Stopwatch">▶</button>
+                </div>
+
+                <!-- Single User Profile Avatar & Dropdown -->
+                <div class="user-profile-wrapper" id="userProfileWrapper">
+                    <button type="button" class="avatar-circle-btn" id="userAvatarBtn" title="View Profile">
+                        <span class="avatar-circle" id="userAvatar">NK</span>
+                    </button>
+                    
+                    <div class="user-profile-dropdown" id="userProfileDropdown" style="display: none;">
+                        <div class="profile-card-header">
+                            <div class="profile-card-avatar" id="dropdownAvatarLarge">NK</div>
+                            <div class="profile-card-details">
+                                <div class="profile-card-name" id="profileDropdownName">Nikhil Kaushik</div>
+                                <div class="profile-card-position-wrap">
+                                    <span class="profile-card-role-badge" id="profileDropdownRole">Technical Project Lead</span>
+                                </div>
+                                <div class="profile-card-email" id="profileDropdownEmail">nikhil@lifepms.com</div>
+                            </div>
+                        </div>
+                        <div class="profile-card-divider"></div>
+                        <button type="button" class="profile-dropdown-logout-btn" id="btnDropdownSignOut" title="Sign Out">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            <span>Sign Out</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN WORKSPACE LAYOUT -->
+        <div class="workspace-body">
+            <!-- Left Sidebar Navigation -->
+            <aside class="sidebar">
+                <nav class="sidebar-main-nav">
+                    <a href="#" class="sidebar-item active" data-view="home">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span>Home</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="tasks">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+                        <span>Tasks</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="issues">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span>Issues</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="phases">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                        <span>Milestones</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="finance">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>Timesheets & EVM</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="documents">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                        <span>Documents</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="team">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        <span>Team & Roles</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="reports">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        <span>Reports & BI</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="automation">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span>Automation</span>
+                    </a>
+                    <a href="#" class="sidebar-item" data-view="creative">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>AI & Labs</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-section-header">
+                    <span>Active Projects</span>
+                </div>
+                <nav class="sidebar-projects-nav" id="sidebarRecentProjects">
+                    <!-- Populated dynamically -->
+                </nav>
+
+                <div class="sidebar-bottom-actions">
+                    <button class="btn-sidebar-invite" id="btnInviteUsers">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        <span>Invite Member</span>
+                    </button>
+                    <button class="btn-sidebar-logout" id="btnSidebarLogout" title="Sign Out">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MAIN VIEWPORT PANELS -->
+            <main class="content-viewport" id="contentViewport">
+                <!-- VIEW 1: GLOBAL DASHBOARD (Executive Command Center) -->
+                <div id="view-home" class="viewport-panel active">
+                    <div class="dashboard-header-bar">
+                        <div class="dash-title-dropdown">
+                            <h2 style="font-size:16px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                                <span style="color:var(--theme-sky-dark); cursor:pointer;" id="dashScopeTitle">Global Dashboard ▾</span>
+                            </h2>
+                        </div>
+                        <div class="dash-header-actions">
+                            <button class="btn btn-primary btn-sm" id="btnHeaderAddTaskHome">+ New Task</button>
+                            <button class="btn btn-outline btn-sm" id="btnHeaderAddIssueHome">+ Report Bug</button>
+                            <button class="btn btn-outline btn-sm" id="btnTriggerWorkerRunner" title="Trigger Recurrence, Reminders, and SLA cron">⚡ Run Workers</button>
+                        </div>
+                    </div>
+
+                    <!-- 6 Flat Minimal Stats Cards -->
+                    <div class="stats-row-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Open Tasks</span>
+                            <span class="stat-value" id="dashOpenTasks">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Closed Tasks</span>
+                            <span class="stat-value" id="dashClosedTasks">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Open Issues</span>
+                            <span class="stat-value" id="dashOpenIssues">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Closed Issues</span>
+                            <span class="stat-value" id="dashClosedIssues">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Open Phases</span>
+                            <span class="stat-value" id="dashOpenPhases">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Closed Phases</span>
+                            <span class="stat-value" id="dashClosedPhases">-</span>
+                        </div>
+                    </div>
+
+                    <!-- 4 Minimal Dashboard Widgets -->
+                    <div class="dash-widgets-grid">
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>My Tasks</h3>
+                                <span class="badge-subtle" id="widgetMyTasksCount">0</span>
+                            </div>
+                            <div class="widget-list" id="widgetMyTasksList"></div>
+                        </div>
+
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>My Issues</h3>
+                                <span class="badge-subtle" id="widgetIssuesCount">0</span>
+                            </div>
+                            <div class="widget-list" id="widgetMyIssuesList"></div>
+                        </div>
+
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>My Work Items Due Today</h3>
+                                <span class="badge-subtle" id="widgetDueSoonCount">0</span>
+                            </div>
+                            <div class="widget-list" id="widgetDueTodayList"></div>
+                        </div>
+
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>My Overdue Work Items</h3>
+                                <span class="badge-subtle" id="widgetOverdueCount">0</span>
+                            </div>
+                            <div class="widget-list" id="widgetOverdueList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Milestone & Phase Roadmap -->
+                    <div class="dash-section-container" style="margin-top:16px;">
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <h3>Milestone & Phase Delivery Targets</h3>
+                                    <span class="badge-subtle">WBS Milestones</span>
+                                </div>
+                                <span style="font-size:12px; color:var(--text-secondary);" id="roadmapCountSummary">Loading...</span>
+                            </div>
+                            <div class="roadmap-table-wrapper">
+                                <table class="roadmap-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Milestone / Phase</th>
+                                            <th>Project</th>
+                                            <th style="width: 200px;">Progress</th>
+                                            <th style="width: 100px;">Tasks</th>
+                                            <th style="width: 120px;">Target Date</th>
+                                            <th style="width: 110px;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashRoadmapTbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2-Column Grid: Team Workload + Live Activity Stream -->
+                    <div class="dash-widgets-grid" style="margin-top:16px;">
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>Team Capacity & Workload</h3>
+                                <span class="badge-subtle">40h / Wk Standard</span>
+                            </div>
+                            <div class="widget-list" id="widgetTeamWorkloadList"></div>
+                        </div>
+
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>Workspace Activity & Audit Trail</h3>
+                                <span class="live-dot-pulse">● Live</span>
+                            </div>
+                            <div class="widget-list" id="widgetActivityStreamList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: TASKS ENGINE (List Sheet, Kanban, Gantt, Calendar, Matrix) -->
+                <div id="view-project-tasks" class="viewport-panel">
+                    <!-- Tasks Multi-View Sub-Toolbar -->
+                    <div class="zoho-sub-toolbar">
+                        <div class="sub-toolbar-left">
+                            <button type="button" class="sub-filter-dropdown-btn" id="btnSubbarViewFilter">
+                                <span>All Open</span>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+
+                            <!-- Multi-View Segmented Switcher (PDF Module 5) -->
+                            <div class="view-mode-tabs" id="tasksViewModeTabs">
+                                <button type="button" class="view-mode-btn active" data-task-view="sheet">📋 Sheet</button>
+                                <button type="button" class="view-mode-btn" data-task-view="kanban">🍱 Kanban</button>
+                                <button type="button" class="view-mode-btn" data-task-view="gantt">📊 Gantt</button>
+                                <button type="button" class="view-mode-btn" data-task-view="calendar">📅 Calendar</button>
+                                <button type="button" class="view-mode-btn" data-task-view="matrix">🎯 Matrix</button>
+                            </div>
+                        </div>
+                        <div class="sub-toolbar-right">
+                            <button type="button" class="btn-subbar-add-task" id="btnSubbarAddTask" title="Add New Task">
+                                <span>Add Task</span>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <button type="button" class="sub-action-icon-btn" id="btnToggleAstFilter" title="AST Query / Filter">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            </button>
+                            <button type="button" class="sub-action-icon-btn" id="btnOpenImportExportModal" title="Import / Export Data">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SUB-VIEW 1: WBS SPREADSHEET SHEET GRID -->
+                    <div id="subview-tasks-sheet" class="tasks-subview-container active">
+                        <div class="zoho-group-bar">
+                            <div class="group-bar-left">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                <span>Group By: Task List</span>
+                            </div>
+                            <div class="group-bar-right" style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:11.5px; color:var(--text-muted);">Inline Editing Enabled</span>
+                            </div>
+                        </div>
+
+                        <div class="sheet-table-wrapper">
+                            <table class="tasks-sheet-table" id="taskSheetTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 32px;"><input type="checkbox" id="selectAllTasks"></th>
+                                        <th style="width: 90px;">ID</th>
+                                        <th>Task Name</th>
+                                        <th style="width: 150px;">Owner</th>
+                                        <th style="width: 110px;">Status</th>
+                                        <th style="width: 120px;">Tags</th>
+                                        <th style="width: 110px;">Start Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="taskSheetTbody"></tbody>
+                            </table>
+                            <div class="table-footer-summary" id="taskSheetTotalCount">
+                                <span>Total Count : <strong style="color:var(--text-primary); margin-left:4px;">0</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUB-VIEW 2: KANBAN BOARD -->
+                    <div id="subview-tasks-kanban" class="tasks-subview-container">
+                        <div class="kanban-board-canvas" id="kanbanBoardContainer">
+                            <!-- Dynamically populated columns (Open, In Progress, In Review, Completed) -->
+                        </div>
+                    </div>
+
+                    <!-- SUB-VIEW 3: INTERACTIVE GANTT & CRITICAL PATH -->
+                    <div id="subview-tasks-gantt" class="tasks-subview-container">
+                        <div class="gantt-header-controls">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <span style="font-weight:600; font-size:13px;">Critical Path Engine</span>
+                                <span class="badge-subtle badge-critical" id="criticalPathSummaryBadge">Critical Path Highlighted</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button type="button" class="btn btn-outline btn-sm" id="btnDownloadSvgGantt">📥 Export SVG Gantt</button>
+                            </div>
+                        </div>
+                        <div class="gantt-split-viewport" id="ganttViewportContainer">
+                            <!-- Left WBS Tree -->
+                            <div class="gantt-left-tree" id="ganttWbsTree"></div>
+                            <!-- Right Timeline Canvas -->
+                            <div class="gantt-right-timeline" id="ganttTimelineBars"></div>
+                        </div>
+                    </div>
+
+                    <!-- SUB-VIEW 4: PROJECT CALENDAR -->
+                    <div id="subview-tasks-calendar" class="tasks-subview-container">
+                        <div class="calendar-controls-bar">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button class="btn btn-outline btn-sm" id="btnCalPrev">‹ Prev</button>
+                                <span style="font-weight:600; font-size:13px;" id="calendarMonthTitle">October 2026</span>
+                                <button class="btn btn-outline btn-sm" id="btnCalNext">Next ›</button>
+                            </div>
+                            <div style="font-size:12px; color:var(--text-secondary);">Scheduled Work Items & Milestones</div>
+                        </div>
+                        <div class="calendar-grid-container" id="calendarGridContainer"></div>
+                    </div>
+
+                    <!-- SUB-VIEW 5: EISENHOWER 2x2 MATRIX -->
+                    <div id="subview-tasks-matrix" class="tasks-subview-container">
+                        <div class="matrix-grid-2x2" id="matrixGridContainer">
+                            <div class="matrix-quadrant quad-do">
+                                <div class="quad-header"><span class="quad-title">DO FIRST</span><span class="quad-sub">Urgent & Important</span></div>
+                                <div class="quad-list" id="matrixDoFirstList"></div>
+                            </div>
+                            <div class="matrix-quadrant quad-schedule">
+                                <div class="quad-header"><span class="quad-title">SCHEDULE</span><span class="quad-sub">Important, Not Urgent</span></div>
+                                <div class="quad-list" id="matrixScheduleList"></div>
+                            </div>
+                            <div class="matrix-quadrant quad-delegate">
+                                <div class="quad-header"><span class="quad-title">DELEGATE</span><span class="quad-sub">Urgent, Not Important</span></div>
+                                <div class="quad-list" id="matrixDelegateList"></div>
+                            </div>
+                            <div class="matrix-quadrant quad-eliminate">
+                                <div class="quad-header"><span class="quad-title">ELIMINATE</span><span class="quad-sub">Not Urgent & Not Important</span></div>
+                                <div class="quad-list" id="matrixEliminateList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 3: ISSUES & BUG TRACKER (PDF Module 7) -->
+                <div id="view-project-issues" class="viewport-panel">
+                    <div class="zoho-sub-toolbar">
+                        <div class="sub-toolbar-left">
+                            <div class="view-chip-group">
+                                <button class="view-chip-btn active" data-issue-filter="all">All Issues</button>
+                                <button class="view-chip-btn" data-issue-filter="blocker">🔴 Blocker / Critical</button>
+                                <button class="view-chip-btn" data-issue-filter="open">Open</button>
+                                <button class="view-chip-btn" data-issue-filter="closed">Closed</button>
+                            </div>
+                        </div>
+                        <div class="sub-toolbar-right">
+                            <button type="button" class="btn btn-primary btn-sm" id="btnReportIssueModalTrigger">+ Report Bug</button>
+                            <button type="button" class="btn btn-outline btn-sm" id="btnPublicWebToIntake" title="Web-to-Issue Form">🌐 Public Intake</button>
+                        </div>
+                    </div>
+
+                    <div class="sheet-table-wrapper" style="margin-top:12px;">
+                        <table class="tasks-sheet-table" id="issuesSheetTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 32px;"><input type="checkbox" id="selectAllIssues"></th>
+                                    <th style="width: 90px;">Bug ID</th>
+                                    <th>Title</th>
+                                    <th style="width: 120px;">Severity</th>
+                                    <th style="width: 130px;">SLA Countdown</th>
+                                    <th style="width: 120px;">Classification</th>
+                                    <th style="width: 130px;">Affected Phase</th>
+                                    <th style="width: 110px;">Status</th>
+                                    <th style="width: 120px; text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="issuesSheetTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VIEW 4: PHASES & MILESTONES (PDF Module 3) -->
+                <div id="view-project-phases" class="viewport-panel">
+                    <div class="project-top-header">
+                        <div class="project-headline">
+                            <h1 id="phasesProjectTitle">Milestone Deliverables & Sequential Chaining</h1>
+                            <div class="project-header-icons">
+                                <button class="btn btn-primary btn-sm" id="btnAddPhaseModalTrigger">+ Add Milestone</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sheet-table-wrapper">
+                        <table class="tasks-sheet-table" id="phasesSheetTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 32px;"><input type="checkbox" id="selectAllPhases"></th>
+                                    <th>Milestone Name</th>
+                                    <th style="width: 220px;">Progress</th>
+                                    <th style="width: 140px;">Tasks (Closed/Total)</th>
+                                    <th style="width: 130px;">Timeline</th>
+                                    <th style="width: 110px;">Budget</th>
+                                    <th style="width: 110px;">Status</th>
+                                    <th style="width: 130px; text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="phasesSheetTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VIEW 5: TIMESHEETS & FINANCE / EVM (PDF Module 8) -->
+                <div id="view-timesheets-finance" class="viewport-panel">
+                    <div class="dashboard-header-bar">
+                        <div>
+                            <h2 style="font-size:16px; font-weight:600;">Time Tracking, Weekly Approvals & EVM Financials</h2>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Track billable hours, review manager timesheet submissions, and inspect Earned Value Management metrics.</p>
+                        </div>
+                        <div class="dash-header-actions">
+                            <button class="btn btn-primary btn-sm" id="btnOpenLogTimeModal">+ Log Time</button>
+                            <button class="btn btn-outline btn-sm" id="btnGenerateClientInvoice">📄 Generate Invoice</button>
+                        </div>
+                    </div>
+
+                    <!-- EVM Financial Metrics Banner (PDF Feature 94) -->
+                    <div class="evm-banner-grid" id="evmFinancialMetricsBanner">
+                        <div class="evm-card">
+                            <span class="evm-label">Planned Value (PV)</span>
+                            <span class="evm-val" id="evmPV">$0</span>
+                        </div>
+                        <div class="evm-card">
+                            <span class="evm-label">Earned Value (EV)</span>
+                            <span class="evm-val" id="evmEV">$0</span>
+                        </div>
+                        <div class="evm-card">
+                            <span class="evm-label">Actual Cost (AC)</span>
+                            <span class="evm-val" id="evmAC">$0</span>
+                        </div>
+                        <div class="evm-card">
+                            <span class="evm-label">Cost Variance (CV)</span>
+                            <span class="evm-val" id="evmCV">$0</span>
+                        </div>
+                        <div class="evm-card">
+                            <span class="evm-label">Cost Perf Index (CPI)</span>
+                            <span class="evm-val" id="evmCPI">1.00</span>
+                        </div>
+                        <div class="evm-card">
+                            <span class="evm-label">Schedule Perf Index (SPI)</span>
+                            <span class="evm-val" id="evmSPI">1.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Timesheet Approvals Grid -->
+                    <div class="widget-box" style="margin-top:16px;">
+                        <div class="widget-box-header">
+                            <h3>Weekly Timesheet Submissions & Approval Queue</h3>
+                            <span class="badge-subtle" id="timesheetStatusTag">Pending Approvals</span>
+                        </div>
+                        <div class="sheet-table-wrapper">
+                            <table class="tasks-sheet-table" id="timesheetApprovalTable">
+                                <thead>
+                                    <tr>
+                                        <th>Team Member</th>
+                                        <th>Project</th>
+                                        <th>Task</th>
+                                        <th>Date</th>
+                                        <th>Logged Hours</th>
+                                        <th>Billing Type</th>
+                                        <th>Status</th>
+                                        <th style="text-align:right;">Manager Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="timesheetApprovalTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 6: DOCUMENTS & ASSET REPOSITORY / PROOFING (PDF Module 10) -->
+                <div id="view-documents-proofing" class="viewport-panel">
+                    <div class="dashboard-header-bar">
+                        <div>
+                            <h2 style="font-size:16px; font-weight:600;">File Repository, Versioning & Visual Proofing</h2>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Hierarchical asset folder tree, multi-version check-in/out, and collaborative visual proofing pins.</p>
+                        </div>
+                        <div class="dash-header-actions">
+                            <button class="btn btn-primary btn-sm" id="btnUploadNewFile">+ Upload Asset</button>
+                            <button class="btn btn-outline btn-sm" id="btnCreateAssetFolder">+ New Folder</button>
+                            <input type="file" id="fileUploadInput" accept="image/*,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" style="display:none;">
+                        </div>
+                    </div>
+
+                    <div id="documentUploadProgress" style="display:none; padding:10px 16px; margin: 12px 0; background:rgba(14,165,233,0.1); border:1px solid var(--theme-sky); border-radius:6px; font-size:12px; color:var(--theme-sky); align-items:center; gap:8px;">
+                        <span class="upload-spinner">⏳</span>
+                        <span id="uploadProgressText">Uploading asset to Firebase Storage...</span>
+                    </div>
+
+                    <div class="vault-split-layout">
+                        <!-- Folders Tree Left -->
+                        <div class="vault-folders-sidebar">
+                            <div class="vault-sidebar-title">FOLDERS</div>
+                            <div class="vault-tree-list" id="vaultFolderTree"></div>
+                        </div>
+
+                        <!-- Files Grid Right -->
+                        <div class="vault-files-content">
+                            <div class="vault-files-grid" id="vaultFilesGrid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 7: TEAM MEMBERS, CLIENT COMPANIES & RBAC (PDF Module 1) -->
+                <div id="view-team-users" class="viewport-panel">
+                    <div class="dashboard-header-bar">
+                        <div>
+                            <h2 style="font-size:16px; font-weight:600;">Team Directory, Client Companies & Role Security</h2>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Role-Based Access Control, field-level cost masking, client isolation, and availability tracker.</p>
+                        </div>
+                        <div class="dash-header-actions">
+                            <button class="btn btn-primary btn-sm" id="btnTeamInviteMemberModal">+ Invite Member</button>
+                        </div>
+                    </div>
+
+                    <!-- Segmented View Tabs for Team -->
+                    <div class="view-chip-group" style="margin-bottom:12px;">
+                        <button class="view-chip-btn active" id="btnTabTeamMembers">Team Members</button>
+                        <button class="view-chip-btn" id="btnTabTeamRbac">RBAC Permission Matrix</button>
+                        <button class="view-chip-btn" id="btnTabTeamLeave">Leave & Availability</button>
+                    </div>
+
+                    <!-- Pane 1: Members Table -->
+                    <div id="teamPaneMembers" class="team-subpane active">
+                        <div class="sheet-table-wrapper">
+                            <table class="tasks-sheet-table" id="teamMembersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Department</th>
+                                        <th>Hourly Rate</th>
+                                        <th>Status</th>
+                                        <th style="text-align:right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teamMembersTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pane 2: RBAC Matrix -->
+                    <div id="teamPaneRbac" class="team-subpane">
+                        <div class="sheet-table-wrapper">
+                            <table class="tasks-sheet-table" id="rbacMatrixTable">
+                                <thead>
+                                    <tr>
+                                        <th>Module / Resource</th>
+                                        <th>Admin (Full)</th>
+                                        <th>Manager (WBS/EVM)</th>
+                                        <th>Employee (Execution)</th>
+                                        <th>Client (External Only)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rbacMatrixTbody">
+                                    <tr><td>Projects & WBS</td><td><span class="badge-subtle badge-success">Full Access</span></td><td><span class="badge-subtle badge-success">Create / Edit</span></td><td><span class="badge-subtle">View Only</span></td><td><span class="badge-subtle">External Deliverables</span></td></tr>
+                                    <tr><td>Cost Rates & Margin</td><td><span class="badge-subtle badge-success">Visible</span></td><td><span class="badge-subtle badge-success">Visible</span></td><td><span class="badge-subtle badge-critical">MASKED (Hidden)</span></td><td><span class="badge-subtle badge-critical">MASKED (Hidden)</span></td></tr>
+                                    <tr><td>Internal Task Lists</td><td><span class="badge-subtle badge-success">Visible</span></td><td><span class="badge-subtle badge-success">Visible</span></td><td><span class="badge-subtle badge-success">Visible</span></td><td><span class="badge-subtle badge-critical">STRICTLY BLOCKED</span></td></tr>
+                                    <tr><td>Timesheets & Invoices</td><td><span class="badge-subtle badge-success">Administer</span></td><td><span class="badge-subtle badge-success">Approve</span></td><td><span class="badge-subtle">Log Own Time</span></td><td><span class="badge-subtle">Approved Invoices</span></td></tr>
+                                    <tr><td>Blueprint Transitions</td><td><span class="badge-subtle badge-success">Configure</span></td><td><span class="badge-subtle badge-success">Execute</span></td><td><span class="badge-subtle">Execute Allowed</span></td><td><span class="badge-subtle badge-critical">Blocked</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pane 3: Leave Tracker -->
+                    <div id="teamPaneLeave" class="team-subpane">
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>Leave & Schedule Availability Tracker</h3>
+                                <button class="btn btn-outline btn-sm" id="btnAddLeaveRecord">+ Record Time Off</button>
+                            </div>
+                            <div class="widget-list" id="teamLeaveList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 8: BI REPORTS & ANALYTICS STUDIO (PDF Module 11) -->
+                <div id="view-reports-analytics" class="viewport-panel">
+                    <div class="dashboard-header-bar">
+                        <div>
+                            <h2 style="font-size:16px; font-weight:600;">Business Intelligence, Velocity & Burndown Analytics</h2>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Compare planned vs actual hours, inspect sprint velocity, track SLA resolution targets, and export reports.</p>
+                        </div>
+                        <div class="dash-header-actions">
+                            <button class="btn btn-outline btn-sm" id="btnExportReportsPdf">📄 Export PDF</button>
+                            <button class="btn btn-outline btn-sm" id="btnExportReportsCsv">📊 Export CSV</button>
+                        </div>
+                    </div>
+
+                    <div class="dash-widgets-grid">
+                        <!-- Planned vs Actual Chart -->
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>Planned vs. Actual Hours</h3>
+                                <span class="badge-subtle" id="hoursVarianceBadge">Variance</span>
+                            </div>
+                            <div class="reports-chart-area" id="plannedVsActualChart"></div>
+                        </div>
+
+                        <!-- SLA & Bug Resolution MTTR -->
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>SLA Compliance & Bug MTTR</h3>
+                                <span class="badge-subtle">Quality Metrics</span>
+                            </div>
+                            <div class="reports-chart-area" id="slaComplianceChart"></div>
+                        </div>
+                    </div>
+
+                    <div class="widget-box" style="margin-top:16px;">
+                        <div class="widget-box-header">
+                            <h3>Resource Workload & Capacity Heatmap (40h Base)</h3>
+                            <span class="badge-subtle">Red = Overcapacity</span>
+                        </div>
+                        <div class="sheet-table-wrapper" id="workloadHeatmapContainer"></div>
+                    </div>
+                </div>
+
+                <!-- VIEW 9: AUTOMATION & BLUEPRINT STUDIO (PDF Module 9) -->
+                <div id="view-automation-studio" class="viewport-panel">
+                    <div class="dashboard-header-bar">
+                        <div>
+                            <h2 style="font-size:16px; font-weight:600;">Workflow Blueprint Studio & Business Rules</h2>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Visual state machine designer, role-based transition guards, and interactive during-transition prompts.</p>
+                        </div>
+                        <div class="dash-header-actions">
+                            <button class="btn btn-primary btn-sm" id="btnCreateNewBlueprint">+ New Blueprint</button>
+                        </div>
+                    </div>
+
+                    <!-- Visual Blueprint State Canvas -->
+                    <div class="blueprint-canvas-container" id="blueprintCanvas">
+                        <div class="blueprint-node-flow">
+                            <div class="bp-node bp-open">
+                                <span class="bp-title">Open</span>
+                                <span class="bp-badge">Initial State</span>
+                            </div>
+                            <div class="bp-connector">
+                                <span class="bp-arrow-label">Start Work [Dev/Lead]</span>
+                                <span class="bp-arrow">➔</span>
+                            </div>
+                            <div class="bp-node bp-progress">
+                                <span class="bp-title">In Progress</span>
+                                <span class="bp-badge">Active Dev</span>
+                            </div>
+                            <div class="bp-connector">
+                                <span class="bp-arrow-label">Submit for Review [Prompt Note]</span>
+                                <span class="bp-arrow">➔</span>
+                            </div>
+                            <div class="bp-node bp-review">
+                                <span class="bp-title">In Review</span>
+                                <span class="bp-badge">QA Verification</span>
+                            </div>
+                            <div class="bp-connector">
+                                <span class="bp-arrow-label">QA Sign-off [Guard: Lead Only]</span>
+                                <span class="bp-arrow">➔</span>
+                            </div>
+                            <div class="bp-node bp-completed">
+                                <span class="bp-title">Completed</span>
+                                <span class="bp-badge">Done</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="widget-box" style="margin-top:16px;">
+                        <div class="widget-box-header">
+                            <h3>Active Blueprint State Machine Rules</h3>
+                            <span class="badge-subtle">4 State Transitions Active</span>
+                        </div>
+                        <div class="sheet-table-wrapper">
+                            <table class="tasks-sheet-table">
+                                <thead>
+                                    <tr>
+                                        <th>Transition</th>
+                                        <th>From State</th>
+                                        <th>To State</th>
+                                        <th>Required Role</th>
+                                        <th>Mandatory Prompt</th>
+                                        <th>Automated Post-Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Start Development</strong></td>
+                                        <td><span class="status-pill-zoho status-open">Open</span></td>
+                                        <td><span class="status-pill-zoho status-progress">In Progress</span></td>
+                                        <td>Developer / Manager</td>
+                                        <td>None</td>
+                                        <td>Notify Assigned Owner</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Request QA Review</strong></td>
+                                        <td><span class="status-pill-zoho status-progress">In Progress</span></td>
+                                        <td><span class="status-pill-zoho" style="background:#F59E0B; color:#FFF;">In Review</span></td>
+                                        <td>Lead Developer</td>
+                                        <td>PR Link & Test Notes</td>
+                                        <td>Enqueue QA Review Notification</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>QA Approval</strong></td>
+                                        <td><span class="status-pill-zoho" style="background:#F59E0B; color:#FFF;">In Review</span></td>
+                                        <td><span class="status-pill-zoho status-open">Completed</span></td>
+                                        <td>QA Lead / Admin</td>
+                                        <td>Checklist Verification</td>
+                                        <td>Recalculate Critical Path</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Interactive State Machine Runner (PDF Feature 99) -->
+                    <div class="widget-box" style="margin-top:16px;">
+                        <div class="widget-box-header">
+                            <h3>⚡ Interactive State Machine Transition Runner</h3>
+                            <span class="badge-subtle badge-success">Live Engine Test</span>
+                        </div>
+                        <div style="padding:16px;">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:12px; align-items:end;">
+                                <div class="form-row">
+                                    <label>Select Task to Transition</label>
+                                    <select id="autoRunTaskSelect" class="input-styled"></select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Next Target State</label>
+                                    <select id="autoRunTargetState" class="input-styled">
+                                        <option value="in_progress">➔ In Progress (Active Dev)</option>
+                                        <option value="in_review">➔ In Review (QA Verification)</option>
+                                        <option value="completed">➔ Completed (Sign-off & Done)</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Transition Prompt / Note</label>
+                                    <input type="text" id="autoRunPromptNote" class="input-styled" placeholder="e.g. Tests passing, PR reviewed">
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-primary" id="btnExecuteBlueprintTransition">Execute Transition</button>
+                                </div>
+                            </div>
+                            <div id="autoTransitionResult" style="display:none; margin-top:12px; padding:10px 14px; border-radius:6px; font-size:12.5px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 10: CREATIVE LABS & AI CO-PILOT (PDF Module 12) -->
+                <div id="view-creative-labs" class="viewport-panel">
+                    <div class="dashboard-header-bar">
+                        <div>
+                            <h2 style="font-size:16px; font-weight:600;">Creative Labs — Flight Simulator, Risk Radar & Gemini AI</h2>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Algorithmic schedule slip simulation, chokepoint risk detection, vector SVG Gantt, and AI WBS generation.</p>
+                        </div>
+                    </div>
+
+                    <!-- 3-Column Creative Engines -->
+                    <div class="creative-grid-3col">
+                        <!-- What-If Flight Simulator -->
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>What-If Schedule Simulator</h3>
+                                <span class="badge-subtle">Deterministic</span>
+                            </div>
+                            <div style="padding:16px;">
+                                <div class="form-row">
+                                    <label>Milestone Slip Duration: <strong id="simSlipDaysVal">5 Days</strong></label>
+                                    <input type="range" id="simSlipSlider" min="1" max="30" value="5" class="input-styled" style="padding:0;">
+                                </div>
+                                <button class="btn btn-primary btn-block" id="btnRunSimulation" style="margin-top:12px;">Run Flight Simulator</button>
+                                
+                                <div id="simResultsBox" style="margin-top:16px; display:none; background:var(--bg-surface-alt); padding:12px; border-radius:6px; border:1px solid var(--border-subtle);">
+                                    <div style="font-weight:600; font-size:12.5px; margin-bottom:6px;">Simulation Impact Analysis:</div>
+                                    <div style="font-size:12px; color:var(--text-secondary);" id="simImpactText"></div>
+                                    <div style="margin-top:8px; font-weight:600; font-size:12px; color:var(--theme-sky);">Tactical Mitigations:</div>
+                                    <ul id="simMitigationsList" style="font-size:11.5px; padding-left:16px; margin-top:4px; color:var(--text-secondary);"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Risk Radar & Health Pulse -->
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>Risk Radar & SPOF Detector</h3>
+                                <span class="badge-subtle">Chokepoints</span>
+                            </div>
+                            <div style="padding:16px;">
+                                <button class="btn btn-outline btn-block" id="btnRunHealthPulse">Scan Project Health Pulse</button>
+                                <div id="healthPulseResults" style="margin-top:16px; display:none;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <span style="font-size:12px;">Health Score:</span>
+                                        <span style="font-weight:700; font-size:14px; color:#22C55E;" id="healthScoreDisplay">94 / 100</span>
+                                    </div>
+                                    <div id="healthRiskList" style="font-size:11.5px; color:var(--text-secondary);"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gemini 2.5 AI Co-Pilot -->
+                        <div class="widget-box">
+                            <div class="widget-box-header">
+                                <h3>Gemini 2.5 AI Co-Pilot</h3>
+                                <span class="badge-subtle">Natural Language WBS</span>
+                            </div>
+                            <div style="padding:16px;">
+                                <div class="form-row">
+                                    <label>Product Brief / Feature Spec</label>
+                                    <textarea id="aiWbsBriefInput" class="input-styled" rows="3" placeholder="e.g. Build an enterprise mobile banking app with biometric login, transaction feed, and debit card lock..."></textarea>
+                                </div>
+                                <button class="btn btn-primary btn-block" id="btnGenerateAiWbs">Generate 5-Level WBS</button>
+                                
+                                <div id="aiWbsOutput" style="margin-top:12px; display:none; max-height:160px; overflow-y:auto; font-family:var(--font-mono); font-size:11px; background:var(--bg-surface-alt); padding:8px; border-radius:4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- SLIDE-OVER DRAWER 1: TASK DETAILS INSPECTOR (Reference Image 2 Parity) -->
+            <div class="task-drawer-overlay" id="taskDrawerOverlay">
+                <aside class="task-drawer" id="taskDetailDrawer">
+                    <div class="drawer-header">
+                        <div class="drawer-header-left">
+                            <span class="drawer-badge-task">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                                <span>Task</span>
+                            </span>
+                            <span class="drawer-key-pill" id="drawerTaskKey">AE1-T15</span>
+                        </div>
+                        <div class="drawer-header-actions">
+                            <button class="drawer-action-btn" id="btnDrawerAddUser" title="Assign User">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                            </button>
+                            <button class="drawer-action-btn btn-close-drawer" id="btnCloseDrawer" title="Close Drawer">✕</button>
+                        </div>
+                    </div>
+
+                    <div class="drawer-body">
+                        <div class="drawer-title-area">
+                            <h2 class="drawer-task-title" id="drawerTaskTitle" contenteditable="true" spellcheck="false">Stitch AI for Website Code</h2>
+                            
+                            <div class="drawer-meta-bar">
+                                <span class="meta-tag-flag" id="drawerFlagBadge">Internal</span>
+                                <span class="meta-separator">|</span>
+                                <span class="meta-creator" id="drawerCreatorName">By Nikhil Kaushik</span>
+                                <span class="meta-separator">|</span>
+                                <div class="drawer-timer-chip">
+                                    <span class="timer-clock-icon">⏱</span>
+                                    <span class="timer-time" id="drawerTimerDisplay">00:00:00</span>
+                                    <button class="timer-play-btn" id="btnDrawerTimerToggle">▶</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Indicator Selector -->
+                        <div class="drawer-status-block">
+                            <div class="drawer-status-select-wrap">
+                                <span class="status-indicator-dot" id="drawerStatusDot"></span>
+                                <select id="drawerStatusSelect" class="drawer-status-select">
+                                    <option value="open">Open</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="in_review">In Review</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+                            <span class="drawer-status-sublabel">STATUS</span>
+                        </div>
+
+                        <!-- Description Accordion -->
+                        <div class="drawer-collapsible-section">
+                            <div class="section-accordion-header" id="headerDescToggle">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span class="accordion-chevron">⌄</span>
+                                    <span class="accordion-title">Description</span>
+                                </div>
+                                <button type="button" class="btn-section-add" id="btnAddDescriptionNote">+</button>
+                            </div>
+                            <div class="section-accordion-body" id="bodyDesc">
+                                <textarea id="drawerTaskNote" class="drawer-desc-textarea" rows="3" placeholder="Enter task specification..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Task Information Matrix -->
+                        <div class="drawer-collapsible-section">
+                            <div class="section-accordion-header">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span class="accordion-chevron">⌄</span>
+                                    <span class="accordion-title">Task Information</span>
+                                </div>
+                            </div>
+                            <div class="section-accordion-body">
+                                <div class="info-field-table">
+                                    <div class="info-field-row">
+                                        <label class="info-field-label">Owner</label>
+                                        <div class="info-field-control">
+                                            <div class="owner-pill-tag" id="drawerOwnerTag">
+                                                <span class="owner-pill-avatar" id="drawerOwnerInitials">NK</span>
+                                                <span class="owner-pill-name" id="drawerOwnerName">Nikhil Kaushik</span>
+                                                <button type="button" class="owner-pill-remove" id="btnRemoveOwner">✕</button>
+                                            </div>
+                                            <select id="drawerOwnerSelect" class="info-inline-select" style="display:none;"></select>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-field-row">
+                                        <label class="info-field-label">Start Date</label>
+                                        <div class="info-field-control">
+                                            <input type="date" id="drawerStartDate" class="info-date-input">
+                                        </div>
+                                    </div>
+
+                                    <div class="info-field-row">
+                                        <label class="info-field-label">Due Date</label>
+                                        <div class="info-field-control">
+                                            <input type="date" id="drawerDueDate" class="info-date-input">
+                                        </div>
+                                    </div>
+
+                                    <div class="info-field-row">
+                                        <label class="info-field-label">Priority</label>
+                                        <div class="info-field-control">
+                                            <select id="drawerPrioritySelect" class="info-inline-select">
+                                                <option value="none">None</option>
+                                                <option value="low">Low</option>
+                                                <option value="medium">Medium</option>
+                                                <option value="high">High</option>
+                                                <option value="urgent">Urgent</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-field-row">
+                                        <label class="info-field-label">Completion %</label>
+                                        <div class="info-field-control" style="display:flex; align-items:center; gap:8px;">
+                                            <input type="number" id="drawerCompletionInput" class="info-inline-input" style="width:60px;" min="0" max="100">
+                                            <span style="font-weight:600; font-size:12px;">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Subtasks & Checklist Accordion (PDF Feature 36, 45) -->
+                        <div class="drawer-collapsible-section">
+                            <div class="section-accordion-header">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span class="accordion-chevron">⌄</span>
+                                    <span class="accordion-title">Subtasks & To-Do Checklist</span>
+                                </div>
+                            </div>
+                            <div class="section-accordion-body">
+                                <div id="drawerSubtasksList" style="margin-bottom:8px;"></div>
+                                <div style="display:flex; gap:6px;">
+                                    <input type="text" id="newSubtaskInput" class="info-inline-input" placeholder="+ Add a checklist item or subtask...">
+                                    <button type="button" class="btn btn-outline btn-sm" id="btnAddSubtaskBtn">Add</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Threaded Comments Accordion (PDF Feature 108) -->
+                        <div class="drawer-collapsible-section">
+                            <div class="section-accordion-header">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span class="accordion-chevron">⌄</span>
+                                    <span class="accordion-title">Comments & Activity Stream</span>
+                                </div>
+                            </div>
+                            <div class="section-accordion-body">
+                                <div id="drawerCommentsStream" style="margin-bottom:12px;"></div>
+                                <div style="display:flex; gap:6px; flex-direction:column;">
+                                    <textarea id="drawerNewCommentInput" class="drawer-desc-textarea" rows="2" placeholder="Write a comment... (Type @ to mention teammates)"></textarea>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <label style="font-size:11px; color:var(--text-muted);">
+                                            <input type="checkbox" id="commentInternalOnly" checked> Internal Team Only
+                                        </label>
+                                        <button type="button" class="btn btn-primary btn-sm" id="btnPostComment">Post Comment</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="drawer-save-status" id="drawerSaveStatus" style="font-size:11.5px; color:var(--text-secondary); text-align:right; padding-top:8px;">
+                            <span>✓ All changes saved</span>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- SLIDE-OVER DRAWER 2: ISSUE / BUG DETAILS (PDF Feature 74-84) -->
+            <div class="task-drawer-overlay" id="issueDrawerOverlay">
+                <aside class="task-drawer" id="issueDetailDrawer">
+                    <div class="drawer-header">
+                        <div class="drawer-header-left">
+                            <span class="drawer-badge-task" style="background:#EF4444; color:#FFF;">
+                                <span>Defect / Bug</span>
+                            </span>
+                            <span class="drawer-key-pill" id="drawerIssueKey">ISS-101</span>
+                        </div>
+                        <div class="drawer-header-actions">
+                            <button class="btn btn-outline btn-sm" id="btnConvertIssueToTask">Convert to Task</button>
+                            <button class="drawer-action-btn btn-close-drawer" id="btnCloseIssueDrawer">✕</button>
+                        </div>
+                    </div>
+
+                    <div class="drawer-body">
+                        <div class="drawer-title-area">
+                            <h2 class="drawer-task-title" id="drawerIssueTitle">Memory leak on WebSocket reconnection</h2>
+                            <div class="drawer-meta-bar" style="margin-top:6px;">
+                                <span class="badge-subtle badge-critical" id="drawerIssueSeverity">Critical</span>
+                                <span class="meta-separator">|</span>
+                                <span style="font-size:12px; color:var(--text-secondary);" id="drawerIssueSla">SLA: 4h Resolution</span>
+                            </div>
+                        </div>
+
+                        <div class="drawer-collapsible-section" style="margin-top:12px;">
+                            <div class="section-accordion-header">
+                                <span class="accordion-title">Issue Details</span>
+                            </div>
+                            <div class="section-accordion-body">
+                                <div class="info-field-table">
+                                    <div class="info-field-row"><label class="info-field-label">Status</label><div class="info-field-control"><select id="drawerIssueStatus" class="info-inline-select"><option value="open">Open</option><option value="in_progress">In Progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></div></div>
+                                    <div class="info-field-row"><label class="info-field-label">Severity</label><div class="info-field-control"><select id="drawerIssueSeveritySelect" class="info-inline-select"><option value="blocker">Blocker</option><option value="critical">Critical</option><option value="major">Major</option><option value="minor">Minor</option></select></div></div>
+                                    <div class="info-field-row"><label class="info-field-label">Reproducibility</label><div class="info-field-control"><select id="drawerIssueRepro" class="info-inline-select"><option value="always">Always</option><option value="sometimes">Sometimes</option><option value="rarely">Rarely</option><option value="unable">Unable</option></select></div></div>
+                                    <div class="info-field-row"><label class="info-field-label">Affected Phase</label><div class="info-field-control"><select id="drawerIssuePhase" class="info-inline-select"></select></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="drawer-collapsible-section">
+                            <div class="section-accordion-header"><span class="accordion-title">Steps to Reproduce / Description</span></div>
+                            <div class="section-accordion-body">
+                                <textarea id="drawerIssueDescription" class="drawer-desc-textarea" rows="4"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- SLIDE-OVER DRAWER 3: NOTIFICATIONS CENTER (PDF Feature 116) -->
+            <div class="task-drawer-overlay" id="notifDrawerOverlay">
+                <aside class="task-drawer" style="width: 420px;">
+                    <div class="drawer-header">
+                        <div class="drawer-header-left">
+                            <h3 style="font-size:14px; font-weight:600;">Notifications & Activity</h3>
+                        </div>
+                        <div class="drawer-header-actions">
+                            <button class="drawer-action-btn" id="btnCloseNotifDrawer">✕</button>
+                        </div>
+                    </div>
+                    <div class="drawer-body">
+                        <div class="view-chip-group" style="margin-bottom:12px;">
+                            <button class="view-chip-btn active" id="btnNotifFilterAll">All</button>
+                            <button class="view-chip-btn" id="btnNotifFilterUnread">Unread</button>
+                            <button class="view-chip-btn" id="btnNotifFilterMentions">@Mentions</button>
+                        </div>
+                        <div class="widget-list" id="notificationsDrawerList"></div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- MODAL: VISUAL PROOFING LIGHTBOX (PDF Feature 112) -->
+            <div id="modalProofingLightbox" class="modal-backdrop">
+                <div class="modal-dialog modal-dialog-lg" style="max-width: 900px; height: 80vh; display:flex; flex-direction:column;">
+                    <div class="modal-dialog-header">
+                        <h3 id="proofingModalTitle">Visual Proofing Lightbox — Architecture Diagram.png (v2)</h3>
+                        <button class="btn-close-modal" data-close="modalProofingLightbox">✕</button>
+                    </div>
+                    <div style="flex:1; display:flex; gap:16px; padding:16px; overflow:hidden;">
+                        <!-- Canvas View Left -->
+                        <div class="proofing-canvas" id="proofingCanvasArea" style="flex:1; background:#111; border-radius:6px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; cursor:crosshair;">
+                            <img id="proofingImagePreview" src="" alt="Proofing Preview" style="max-width:100%; max-height:100%; object-fit:contain; display:none; user-select:none; pointer-events:none;">
+                            <div id="proofingPlaceholder" style="color:var(--text-muted); text-align:center;">
+                                <div style="font-size:32px; margin-bottom:8px;">🖼️</div>
+                                <div>Click anywhere on the preview to drop a pin annotation marker.</div>
+                            </div>
+                            <!-- Pinned Markers Container -->
+                            <div id="proofingPinsContainer" style="position:absolute; inset:0;"></div>
+                        </div>
+
+                        <!-- Feedback Threads Right -->
+                        <div style="width: 280px; display:flex; flex-direction:column; border-left:1px solid var(--border-subtle); padding-left:16px;">
+                            <h4 style="font-size:12px; font-weight:600; margin-bottom:8px;">Pinned Feedback Threads</h4>
+                            <div id="proofingThreadsList" style="flex:1; overflow-y:auto; font-size:12px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: GLOBAL COMMAND PALETTE (Cmd+K / Ctrl+K) (PDF Feature 44, 52) -->
+            <div id="modalCommandPalette" class="modal-backdrop">
+                <div class="modal-dialog" style="max-width: 600px; padding:0; overflow:hidden;">
+                    <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--border-subtle);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="paletteSearchInput" placeholder="Type a command or search tasks, issues, and pages..." style="flex:1; border:none; outline:none; background:transparent; font-size:14px; color:var(--text-primary);">
+                        <kbd class="cmd-k-kbd">ESC</kbd>
+                    </div>
+                    <div id="paletteResultsList" style="max-height: 320px; overflow-y:auto; padding:8px 0;"></div>
+                </div>
+            </div>
+
+            <!-- MODAL: ADD TASK -->
+            <div id="modalAddTask" class="modal-backdrop">
+                <div class="modal-dialog modal-dialog-lg">
+                    <div class="modal-dialog-header">
+                        <div class="modal-title-with-badge">
+                            <span class="drawer-badge-task"><span>Task</span></span>
+                            <h3>Add New Task</h3>
+                        </div>
+                        <button type="button" class="btn-close-modal" data-close="modalAddTask">✕</button>
+                    </div>
+                    <form id="formModalAddTask" class="modal-dialog-body">
+                        <div class="form-row">
+                            <label>Task Name *</label>
+                            <input type="text" id="newTaskName" class="input-styled" required placeholder="e.g. Implement multi-tenant schema partitioning">
+                        </div>
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Task List *</label>
+                                <select id="newTaskListSelect" class="input-styled" required></select>
+                            </div>
+                            <div class="form-row">
+                                <label>Owner / Assignee</label>
+                                <select id="newTaskOwner" class="input-styled"></select>
+                            </div>
+                        </div>
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Start Date</label>
+                                <input type="date" id="newTaskStart" class="input-styled">
+                            </div>
+                            <div class="form-row">
+                                <label>Due Date</label>
+                                <input type="date" id="newTaskEnd" class="input-styled">
+                            </div>
+                        </div>
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Priority</label>
+                                <select id="newTaskPriority" class="input-styled">
+                                    <option value="none">None</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Visibility</label>
+                                <select id="newTaskFlag" class="input-styled">
+                                    <option value="internal" selected>Internal Team Only</option>
+                                    <option value="external">Client Visible</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label>Description / Specification</label>
+                            <textarea id="newTaskNote" class="input-styled" rows="3" placeholder="Add technical requirements or criteria..."></textarea>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-outline" data-close="modalAddTask">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="btnSubmitAddTaskModal">Create Task</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: ADD ISSUE / BUG -->
+            <div id="modalAddIssue" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Report New Issue / Defect</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalAddIssue">✕</button>
+                    </div>
+                    <form id="formModalAddIssue" class="modal-dialog-body">
+                        <div class="form-row">
+                            <label>Issue Title *</label>
+                            <input type="text" id="newIssueTitle" class="input-styled" required placeholder="e.g. Broken authentication redirect on mobile safari">
+                        </div>
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Severity *</label>
+                                <select id="newIssueSeverity" class="input-styled">
+                                    <option value="blocker">Blocker (4h SLA)</option>
+                                    <option value="critical">Critical (8h SLA)</option>
+                                    <option value="major" selected>Major (24h SLA)</option>
+                                    <option value="minor">Minor (72h SLA)</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Classification</label>
+                                <select id="newIssueClassification" class="input-styled">
+                                    <option value="Security">Security</option>
+                                    <option value="Crash">Crash / Fatal</option>
+                                    <option value="Data Loss">Data Loss</option>
+                                    <option value="UI/Usability" selected>UI / Usability</option>
+                                    <option value="Performance">Performance</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label>Steps to Reproduce</label>
+                            <textarea id="newIssueDescription" class="input-styled" rows="3" placeholder="Describe the expected vs actual behavior and steps to reproduce..."></textarea>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-outline" data-close="modalAddIssue">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Submit Bug Report</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: ADD MILESTONE / PHASE -->
+            <div id="modalAddPhase" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Add Project Milestone</h3>
+                        <button class="btn-close-modal" data-close="modalAddPhase">✕</button>
+                    </div>
+                    <form id="formModalAddPhase" class="modal-dialog-body">
+                        <div class="form-row">
+                            <label>Milestone Name *</label>
+                            <input type="text" id="newPhaseName" class="input-styled" required placeholder="e.g. Phase 4: Production Rollout & High-Availability">
+                        </div>
+                        <div class="form-row">
+                            <label>Scope & Deliverables</label>
+                            <textarea id="newPhaseDescription" class="input-styled" rows="2" placeholder="Key outcomes or customer acceptance criteria..."></textarea>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="form-row">
+                                <label>Start Date</label>
+                                <input type="date" id="newPhaseStart" class="input-styled" value="2026-10-24">
+                            </div>
+                            <div class="form-row">
+                                <label>Target End Date</label>
+                                <input type="date" id="newPhaseEnd" class="input-styled" value="2026-11-30">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="form-row">
+                                <label>Allocated Budget ($)</label>
+                                <input type="number" id="newPhaseBudget" class="input-styled" min="0" step="500" value="15000">
+                            </div>
+                            <div class="form-row">
+                                <label>Visibility</label>
+                                <select id="newPhaseFlag" class="input-styled">
+                                    <option value="internal" selected>Internal Team Only</option>
+                                    <option value="external">Client Visible</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-outline" data-close="modalAddPhase">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Milestone</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: LOG TIME ENTRY -->
+            <div id="modalLogTime" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Log Work Hours</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalLogTime">✕</button>
+                    </div>
+                    <form id="formModalLogTime" class="modal-dialog-body">
+                        <div class="form-row">
+                            <label>Associated Task</label>
+                            <select id="logTimeTaskSelect" class="input-styled"></select>
+                        </div>
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Date *</label>
+                                <input type="date" id="logTimeDate" class="input-styled" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Hours Spent *</label>
+                                <input type="number" id="logTimeHours" class="input-styled" min="0.25" max="24" step="0.25" value="1" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label>Billing Type</label>
+                            <select id="logTimeBillable" class="input-styled">
+                                <option value="1" selected>Billable Hours</option>
+                                <option value="0">Non-Billable</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Work Note</label>
+                            <textarea id="logTimeNote" class="input-styled" rows="2" placeholder="Summary of work completed..."></textarea>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-outline" data-close="modalLogTime">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Record Hours</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: CREATE PROJECT -->
+            <div id="modalCreateProject" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Create New Project</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalCreateProject">✕</button>
+                    </div>
+                    <form id="formModalCreateProject" class="modal-dialog-body">
+                        <div class="form-row">
+                            <label>Project Name *</label>
+                            <input type="text" id="createProjName" class="input-styled" required placeholder="e.g. Q4 Mobile App Redesign">
+                        </div>
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Key Prefix (e.g. ZPA) *</label>
+                                <input type="text" id="createProjPrefix" class="input-styled" required maxlength="6" value="PRJ">
+                            </div>
+                            <div class="form-row">
+                                <label>Budget ($)</label>
+                                <input type="number" id="createProjBudget" class="input-styled" min="0" value="50000">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label>Template / Copy-From</label>
+                            <select id="createProjTemplate" class="input-styled">
+                                <option value="">Blank Project</option>
+                                <option value="template-saas">Verified SaaS Development Template</option>
+                            </select>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-outline" data-close="modalCreateProject">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Project</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: INVITE TEAM MEMBER -->
+            <div id="modalInviteMember" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Invite Team Member</h3>
+                        <button class="btn-close-modal" data-close="modalInviteMember">✕</button>
+                    </div>
+                    <form id="formModalInviteMember" class="modal-dialog-body">
+                        <div class="form-row">
+                            <label>Full Name *</label>
+                            <input type="text" id="inviteName" class="input-styled" required placeholder="e.g. Jordan Lee">
+                        </div>
+                        <div class="form-row">
+                            <label>Email Address *</label>
+                            <input type="email" id="inviteEmail" class="input-styled" required placeholder="name@company.com">
+                        </div>
+                        <div class="form-row">
+                            <label>Workspace Role</label>
+                            <select id="inviteRole" class="input-styled">
+                                <option value="employee" selected>Employee (Dev / QA / Designer)</option>
+                                <option value="manager">Project Manager (PM)</option>
+                                <option value="client">Client (External Stakeholder)</option>
+                                <option value="admin">Administrator</option>
+                            </select>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-outline" data-close="modalInviteMember">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="btnSubmitInviteMember">Send Invitation</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: CREATE WORKFLOW BLUEPRINT (PDF Feature 99) -->
+            <div id="modalCreateBlueprint" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Create Workflow Blueprint</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalCreateBlueprint">✕</button>
+                    </div>
+                    <form id="formModalCreateBlueprint" class="modal-dialog-body">
+                        <div class="form-row">
+                            <label>Blueprint Name *</label>
+                            <input type="text" id="bpName" class="input-styled" required placeholder="e.g. Standard Agile Task Pipeline">
+                        </div>
+                        <div class="form-row">
+                            <label>Entity Scope</label>
+                            <select id="bpEntityType" class="input-styled">
+                                <option value="task" selected>Task Work Items</option>
+                                <option value="issue">Issue / Bug Reports</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Description</label>
+                            <textarea id="bpDescription" class="input-styled" rows="2" placeholder="Governs state transitions and role verification..."></textarea>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-outline" data-close="modalCreateBlueprint">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="btnSubmitBlueprint">Create Blueprint</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: IMPORT / EXPORT WIZARD (PDF Feature 131, 132) -->
+            <div id="modalImportExport" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Import / Export Project Data</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalImportExport">✕</button>
+                    </div>
+                    <div class="modal-dialog-body">
+                        <div style="font-weight:600; font-size:13px; margin-bottom:8px;">Export Options:</div>
+                        <div style="display:flex; gap:8px; margin-bottom:16px;">
+                            <button type="button" class="btn btn-outline btn-block" id="btnExportTasksCsv">Export CSV</button>
+                            <button type="button" class="btn btn-outline btn-block" id="btnExportTasksJson">Export JSON</button>
+                        </div>
+                        <div style="font-weight:600; font-size:13px; margin-bottom:8px;">Import from External Systems:</div>
+                        <div class="form-row">
+                            <label>Select Format</label>
+                            <select id="importFormatSelect" class="input-styled">
+                                <option value="json">Zoho Projects / Generic JSON</option>
+                                <option value="jira">Jira CSV</option>
+                                <option value="asana">Asana CSV</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Paste JSON or CSV Data</label>
+                            <textarea id="importRawDataText" class="input-styled" rows="4" placeholder="Paste data here..."></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-block" id="btnExecuteImport">Import Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: RELEASE NOTES GENERATOR (PDF Feature 82) -->
+            <div id="modalReleaseNotes" class="modal-backdrop">
+                <div class="modal-dialog modal-dialog-lg">
+                    <div class="modal-dialog-header">
+                        <h3>Formatted Milestone Release Notes</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalReleaseNotes">✕</button>
+                    </div>
+                    <div class="modal-dialog-body">
+                        <pre id="releaseNotesContent" style="background:var(--bg-surface-alt); padding:16px; border-radius:6px; font-family:var(--font-mono); font-size:12px; white-space:pre-wrap; max-height:400px; overflow-y:auto;"></pre>
+                    </div>
+            <!-- MODAL: LIVE CHAT SLIDE-OVER DRAWER (PDF Feature 78 & Live Chat Requirement) -->
+            <div id="chatDrawerOverlay" class="chat-drawer-overlay">
+                <div class="chat-drawer">
+                    <div class="chat-drawer-header">
+                        <div class="chat-header-info">
+                            <div class="chat-live-indicator"></div>
+                            <div>
+                                <div class="chat-title">Live Team & Client Chat</div>
+                                <div class="chat-subtitle" id="chatConnectionStatus">Firebase zoho-cda77 &bull; Realtime Online</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn-chat-toggle-email" id="btnToggleChatEmail" title="Save Contact Email to Firebase">✉ Save Email to Firebase</button>
+                            <button type="button" class="btn-close-modal" id="btnCloseChatDrawer">✕</button>
+                        </div>
+                    </div>
+
+                    <!-- Email capture banner inside chat -->
+                    <div id="chatEmailCaptureBanner" class="chat-email-banner" style="display:none;">
+                        <div style="font-size:11.5px; font-weight:600; margin-bottom:4px; color:var(--text-primary);">Save Contact to Firebase Console</div>
+                        <div style="display:flex; gap:6px;">
+                            <input type="email" id="chatVisitorEmailInput" class="input-styled input-sm" placeholder="Enter email to save in Firebase..." style="font-size:12px; height:32px;">
+                            <button type="button" class="btn btn-primary btn-sm" id="btnSaveChatEmail">Save</button>
+                        </div>
+                    </div>
+
+                    <!-- Team presence bar -->
+                    <div class="chat-presence-bar">
+                        <span style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Online:</span>
+                        <div class="chat-presence-avatars">
+                            <div class="presence-avatar" title="Alex Chen (Admin)">AC</div>
+                            <div class="presence-avatar" title="Sarah Jenkins (PM)">SJ</div>
+                            <div class="presence-avatar" title="Devon Vance (Lead Dev)">DV</div>
+                            <div class="presence-avatar" title="Quinn Adams (QA)">QA</div>
+                            <div class="presence-avatar" title="Ritika Sharma (Design)">RS</div>
+                        </div>
+                    </div>
+
+                    <!-- Chat message feed -->
+                    <div class="chat-drawer-messages" id="liveChatMessagesList">
+                        <!-- Messages dynamically rendered here -->
+                    </div>
+
+                    <!-- Message Composer -->
+                    <div class="chat-drawer-composer">
+                        <div class="chat-persona-row">
+                            <span style="font-size:11px; color:var(--text-muted);">Chatting as:</span>
+                            <select id="chatSenderPersona" class="chat-persona-select">
+                                <option value="Alex Chen (Admin)">Alex Chen (Admin)</option>
+                                <option value="Sarah Jenkins (PM)">Sarah Jenkins (PM)</option>
+                                <option value="Devon Vance (Dev)">Devon Vance (Dev)</option>
+                                <option value="Quinn Adams (QA)">Quinn Adams (QA)</option>
+                                <option value="Ritika Sharma (Design)">Ritika Sharma (Design)</option>
+                                <option value="Client / Visitor">Client / Visitor</option>
+                            </select>
+                        </div>
+                        <div class="chat-input-row">
+                            <textarea id="inputLiveChatMessage" class="chat-input-textarea" placeholder="Type a message... (Press Enter to send)" rows="2"></textarea>
+                            <button type="button" class="btn btn-primary btn-chat-send" id="btnSendLiveChatMessage">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: HELP & SHORTCUTS -->
+            <div id="modalHelpShortcuts" class="modal-backdrop">
+                <div class="modal-dialog modal-dialog-lg">
+                    <div class="modal-dialog-header">
+                        <h3>Help, Keyboard Shortcuts & System Guide</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalHelpShortcuts">✕</button>
+                    </div>
+                    <div class="modal-dialog-body" style="max-height:500px; overflow-y:auto; gap:16px;">
+                        <div class="help-section">
+                            <h4 style="font-size:13px; font-weight:600; color:var(--theme-sky); margin-bottom:8px;">⚡ Keyboard Shortcuts</h4>
+                            <div class="shortcuts-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <div class="shortcut-item"><kbd class="cmd-k-kbd">Ctrl</kbd> + <kbd class="cmd-k-kbd">K</kbd> <span>Global Search & Command Palette</span></div>
+                                <div class="shortcut-item"><kbd class="cmd-k-kbd">Esc</kbd> <span>Close Any Open Modal or Drawer</span></div>
+                                <div class="shortcut-item"><kbd class="cmd-k-kbd">N</kbd> <span>Create New Task</span></div>
+                                <div class="shortcut-item"><kbd class="cmd-k-kbd">I</kbd> <span>Log New Bug / Issue</span></div>
+                            </div>
+                        </div>
+
+                        <div class="help-section">
+                            <h4 style="font-size:13px; font-weight:600; color:var(--theme-sky); margin-bottom:8px;">🔥 Firebase Integration Status</h4>
+                            <div style="background:var(--bg-surface-alt); padding:12px; border-radius:6px; font-size:12px; line-height:1.6;">
+                                <div><strong>Active Project:</strong> <span style="font-family:var(--font-mono); color:#22C55E;">zoho-cda77</span></div>
+                                <div><strong>Form Capture Collections:</strong> <span style="font-family:var(--font-mono);">submitted_emails, invited_members, form_submissions</span></div>
+                                <div><strong>Authentication:</strong> Firebase Auth + RBAC JWT Token Exchange</div>
+                                <div><strong>Email Deliverability:</strong> Gmail SMTP / Ethereal Live Test Inboxes</div>
+                            </div>
+                        </div>
+
+                        <div class="help-section">
+                            <h4 style="font-size:13px; font-weight:600; color:var(--theme-sky); margin-bottom:8px;">📊 Zoho Projects Feature Walkthrough</h4>
+                            <p style="font-size:12px; color:var(--text-secondary); line-height:1.5;">
+                                This application implements the complete Zoho Projects specification: 4-Level Work Breakdown Structure (Phases/Milestones &rarr; Task Lists &rarr; Tasks &rarr; Subtasks), Earned Value Management (EVM formulas for PV, EV, AC, CV, SV, CPI, SPI, EAC), Blueprint State Machines, Visual Proofing Lightbox, Role-Based Access Control, and multi-channel notification dispatch.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="modal-dialog-footer">
+                        <button type="button" class="btn btn-secondary" data-close="modalHelpShortcuts">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: EDIT USER ROLE -->
+            <div id="modalEditUserRole" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Edit Team Member Role & RBAC</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalEditUserRole">✕</button>
+                    </div>
+                    <form id="formEditUserRole">
+                        <div class="modal-dialog-body">
+                            <input type="hidden" id="editUserId">
+                            <div class="form-row">
+                                <label>Full Name</label>
+                                <input type="text" id="editUserName" class="input-styled" readonly style="opacity:0.8;">
+                            </div>
+                            <div class="form-row">
+                                <label>Email Address</label>
+                                <input type="email" id="editUserEmail" class="input-styled" readonly style="opacity:0.8;">
+                            </div>
+                            <div class="form-row">
+                                <label>Workspace Role *</label>
+                                <select id="editUserRoleSelect" class="input-styled">
+                                    <option value="admin">Administrator (Full Control)</option>
+                                    <option value="manager">Project Manager (PM)</option>
+                                    <option value="employee">Employee / Developer / QA</option>
+                                    <option value="client">Client User (Restricted External View)</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Hourly Cost Rate ($/hr)</label>
+                                <input type="number" id="editUserHourlyRate" class="input-styled" min="1" max="1000" value="85">
+                            </div>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-secondary" data-close="modalEditUserRole">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="btnSaveUserRole">Update Role</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: PUBLIC ISSUE INTAKE / WEB-TO-ISSUE -->
+            <div id="modalPublicIntake" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Public Web-to-Issue Intake Form</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalPublicIntake">✕</button>
+                    </div>
+                    <form id="formPublicWebToIntake">
+                        <div class="modal-dialog-body">
+                            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">
+                                Submit a bug or issue directly. Submitter email will be saved into Firebase Firestore collection <span style="font-family:var(--font-mono); color:var(--theme-sky);">submitted_emails</span>.
+                            </div>
+                            <div class="form-row">
+                                <label>Your Name *</label>
+                                <input type="text" id="intakeSubmitterName" class="input-styled" placeholder="e.g. Jane Doe" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Your Email Address * (Saved to Firebase)</label>
+                                <input type="email" id="intakeSubmitterEmail" class="input-styled" placeholder="jane@example.com" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Issue Title *</label>
+                                <input type="text" id="intakeIssueTitle" class="input-styled" placeholder="e.g. Broken navigation link on landing page" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Severity</label>
+                                <select id="intakeIssueSeverity" class="input-styled">
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical / Blocker</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Issue Details / Reproduction Steps</label>
+                                <textarea id="intakeIssueDesc" class="input-styled" rows="3" placeholder="Describe the steps to reproduce..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-dialog-footer">
+                            <button type="button" class="btn btn-secondary" data-close="modalPublicIntake">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="btnSubmitIntake">Submit Ticket</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL: SYSTEM INFO -->
+            <div id="modalSystemInfo" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>System Diagnostics & Runtime Information</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalSystemInfo">✕</button>
+                    </div>
+                    <div class="modal-dialog-body" style="font-size:12.5px; line-height:1.7;">
+                        <div><strong>Application:</strong> Life PMS (Zoho Projects Alternative) v1.0.0</div>
+                        <div><strong>Environment:</strong> Node.js Backend with SQLite Database</div>
+                        <div><strong>Port:</strong> <code>http://localhost:5000</code></div>
+                        <div><strong>Firebase Project:</strong> <code>zoho-cda77</code></div>
+                        <div><strong>Firestore Status:</strong> <span style="color:#22C55E;">● Active</span> (Collection: submitted_emails)</div>
+                        <div><strong>Email Delivery:</strong> Active (SMTP + Ethereal live preview fallbacks)</div>
+                        <div><strong>Live Chat:</strong> <span style="color:#22C55E;">● Active</span> (Realtime Channel)</div>
+                    </div>
+                    <div class="modal-dialog-footer">
+                        <button type="button" class="btn btn-secondary" data-close="modalSystemInfo">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: SHARE LINK -->
+            <div id="modalShareLink" class="modal-backdrop">
+                <div class="modal-dialog">
+                    <div class="modal-dialog-header">
+                        <h3>Share Project Workspace</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalShareLink">✕</button>
+                    </div>
+                    <div class="modal-dialog-body">
+                        <div style="font-size:12px; color:var(--text-secondary);">
+                            Anyone with this link can view this project dashboard and task board in client view mode:
+                        </div>
+                        <div style="display:flex; gap:6px; margin-top:8px;">
+                            <input type="text" id="shareLinkUrlInput" class="input-styled" readonly style="font-family:var(--font-mono); font-size:11.5px;">
+                            <button type="button" class="btn btn-primary" id="btnCopyShareLink">Copy</button>
+                        </div>
+                    </div>
+                    <div class="modal-dialog-footer">
+                        <button type="button" class="btn btn-secondary" data-close="modalShareLink">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Help Button -->
+        <button type="button" class="floating-help-btn" id="btnFloatingHelp" title="Help & Shortcuts">Help</button>
+
+        <!-- Bottom System Status Bar -->
+        <footer class="bottom-system-bar">
+            <div class="bottom-bar-left">
+                <button type="button" class="bottom-bar-icon" title="Ideas & Tips">💡</button>
+                <button type="button" class="bottom-bar-icon" title="Chats & Contacts">💬</button>
+                <button type="button" class="bottom-bar-btn-chat" id="btnBottomLiveChat">Live Chat</button>
+            </div>
+            <div class="bottom-bar-right">
+                <span style="font-size:11px; color:var(--text-muted); margin-right:8px;">Life PMS v1.0.0 (Zoho Projects Enterprise Suite)</span>
+                <button type="button" class="bottom-bar-icon" title="System Info">ℹ</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="firebase-auth-client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

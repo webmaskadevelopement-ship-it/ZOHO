@@ -1,0 +1,158 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Top-Level Submitted Emails Collection (Viewable in Firebase Console)
+    // Allows public website forms to submit email leads / member invitations
+    match /submitted_emails/{submissionId} {
+      // Allow any visitor to submit an email with basic email validation
+      allow create: if request.resource.data.email is string 
+                    && request.resource.data.email.size() > 3;
+      // Allow authenticated team members / admins to view and manage submissions
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    // Invited Members Collection
+    match /invited_members/{inviteId} {
+      allow create: if request.resource.data.email is string;
+      allow read: if true;
+      allow update, delete: if isAuthenticated();
+    }
+
+    // General Form Submissions & Public Intake
+    match /form_submissions/{submissionId} {
+      allow create: if request.resource.data.email is string;
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    // Leads & Newsletter Subscriptions
+    match /leads/{leadId} {
+      allow create: if request.resource.data.email is string;
+      allow read, update: if isAuthenticated();
+    }
+
+    // Live Chat Messages (Real-time team & visitor chat)
+    match /live_chat_messages/{messageId} {
+      allow read, create: if true;
+      allow update, delete: if isAuthenticated();
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated();
+    }
+
+    // Portal Scope & Multi-Tenant Project Management Rules
+    function isPortalMember(portalId) {
+      return isAuthenticated() && (
+        request.auth.token.activePortalId == portalId ||
+        request.auth.token.role == 'admin' ||
+        exists(/databases/$(database)/documents/portals/$(portalId)/members/$(request.auth.uid))
+      );
+    }
+
+    function isClientUser() {
+      return request.auth.token.role == 'client';
+    }
+
+    function isManagerOrAdmin(portalId) {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'manager'
+      );
+    }
+
+    function isClientAllowed(resource) {
+      return !isClientUser() || resource.data.flag == 'external';
+    }
+
+    // Multi-tenant Portal Root
+    match /portals/{portalId} {
+      allow read: if isPortalMember(portalId);
+      allow write: if isManagerOrAdmin(portalId);
+
+      match /members/{userId} {
+        allow read: if isPortalMember(portalId);
+        allow write: if isManagerOrAdmin(portalId);
+      }
+
+      match /teams/{teamId} {
+        allow read: if isPortalMember(portalId);
+        allow write: if isManagerOrAdmin(portalId);
+      }
+
+      match /projects/{projectId} {
+        allow read: if isPortalMember(portalId);
+        allow write: if isManagerOrAdmin(portalId);
+      }
+
+      match /phases/{phaseId} {
+        allow read: if isPortalMember(portalId) && isClientAllowed(resource);
+        allow write: if isManagerOrAdmin(portalId);
+      }
+
+      match /taskLists/{taskListId} {
+        allow read: if isPortalMember(portalId) && isClientAllowed(resource);
+        allow write: if isPortalMember(portalId) && !isClientUser();
+      }
+
+      match /tasks/{taskId} {
+        allow read: if isPortalMember(portalId) && isClientAllowed(resource);
+        allow write: if isPortalMember(portalId) && !isClientUser();
+      }
+
+      match /issues/{issueId} {
+        allow read: if isPortalMember(portalId) && isClientAllowed(resource);
+        allow write: if isPortalMember(portalId);
+      }
+
+      match /timeLogs/{timeLogId} {
+        allow read: if isPortalMember(portalId) && (!isClientUser() || resource.data.isBillable == 1);
+        allow create: if isPortalMember(portalId) && !isClientUser();
+        allow update, delete: if isManagerOrAdmin(portalId) || resource.data.userId == request.auth.uid;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isPortalMember(portalId) && !isClientUser();
+        allow write: if isManagerOrAdmin(portalId);
+      }
+
+      match /invoices/{invoiceId} {
+        allow read: if isPortalMember(portalId);
+        allow write: if isManagerOrAdmin(portalId);
+      }
+
+      match /blueprints/{blueprintId} {
+        allow read: if isPortalMember(portalId);
+        allow write: if isManagerOrAdmin(portalId);
+      }
+
+      match /comments/{commentId} {
+        allow read: if isPortalMember(portalId) && isClientAllowed(resource);
+        allow create: if isPortalMember(portalId);
+        allow update, delete: if resource.data.userId == request.auth.uid || isManagerOrAdmin(portalId);
+      }
+
+      match /files/{fileId} {
+        allow read: if isPortalMember(portalId) && isClientAllowed(resource);
+        allow write: if isPortalMember(portalId) && !isClientUser();
+      }
+
+      match /notifications/{notificationId} {
+        allow read, write: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      }
+
+      match /auditLogs/{logId} {
+        allow read: if isManagerOrAdmin(portalId);
+        allow write: if false;
+      }
+    }
+  }
+}

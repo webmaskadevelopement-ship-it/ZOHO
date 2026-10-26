@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.skill6.website.dao.mappers.article.ArticleCommentMapper">
+    <resultMap id="BaseResultMap" type="ArticleComment">
+        <constructor>
+            <idArg column="comment_id" javaType="java.lang.Long" jdbcType="BIGINT"/>
+            <arg column="article_id" javaType="java.lang.Long" jdbcType="BIGINT"/>
+            <arg column="user_id" javaType="java.lang.Long" jdbcType="BIGINT"/>
+            <arg column="comment_user_id" javaType="java.lang.Long" jdbcType="BIGINT"/>
+            <arg column="comment_thumbs_up_count" javaType="java.lang.Integer" jdbcType="INTEGER"/>
+            <arg column="comment_time" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+            <arg column="comment_valid" javaType="java.lang.Boolean" jdbcType="BIT"/>
+            <arg column="comment_content" javaType="java.lang.String" jdbcType="LONGVARCHAR"/>
+        </constructor>
+    </resultMap>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE
+        FROM article_comment
+        WHERE comment_id = #{commentId,jdbcType=BIGINT}
+    </delete>
+    <insert id="insert" parameterType="ArticleComment">
+        INSERT INTO article_comment (comment_id, article_id, user_id,
+                                     comment_user_id, comment_thumbs_up_count, comment_time,
+                                     comment_valid, comment_content)
+        VALUES (#{commentId,jdbcType=BIGINT}, #{articleId,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT},
+                #{commentUserId,jdbcType=BIGINT}, #{commentThumbsUpCount,jdbcType=INTEGER},
+                #{commentTime,jdbcType=TIMESTAMP},
+                #{commentValid,jdbcType=BIT}, #{commentContent,jdbcType=LONGVARCHAR})
+    </insert>
+
+    <update id="updateByPrimaryKey" parameterType="ArticleComment">
+        UPDATE article_comment
+        SET article_id              = #{articleId,jdbcType=BIGINT},
+            user_id                 = #{userId,jdbcType=BIGINT},
+            comment_user_id         = #{commentUserId,jdbcType=BIGINT},
+            comment_thumbs_up_count = #{commentThumbsUpCount,jdbcType=INTEGER},
+            comment_time            = #{commentTime,jdbcType=TIMESTAMP},
+            comment_valid           = #{commentValid,jdbcType=BIT},
+            comment_content         = #{commentContent,jdbcType=LONGVARCHAR}
+        WHERE comment_id = #{commentId,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT comment_id,
+               article_id,
+               user_id,
+               comment_user_id,
+               comment_thumbs_up_count,
+               comment_time,
+               comment_valid,
+               comment_content
+        FROM article_comment
+        WHERE comment_id = #{commentId,jdbcType=BIGINT}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT comment_id,
+               article_id,
+               user_id,
+               comment_user_id,
+               comment_thumbs_up_count,
+               comment_time,
+               comment_valid,
+               comment_content
+        FROM article_comment
+    </select>
+
+    <select id="selectByParams" resultMap="BaseResultMap" parameterType="ArticleComment">
+        SELECT comment_id,
+               article_id,
+               user_id,
+               comment_user_id,
+               comment_thumbs_up_count,
+               comment_time,
+               comment_valid,
+               comment_content
+        FROM article_comment
+        <where>
+            <if test="userId != null">
+                user_id = #{userId,jdbcType=VARCHAR}
+            </if>
+            <if test="articleId != null">
+                AND article_id = #{articleId,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+</mapper>
