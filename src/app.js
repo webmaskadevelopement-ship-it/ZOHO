@@ -83,6 +83,14 @@ app.post('/api/v1/workers/trigger', (req, res) => {
     res.json({ success: true, results });
 });
 
+// SPA Fallback for client-side navigation (prevents 404 on direct URL navigation and page refresh)
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.includes('.')) {
+        return next();
+    }
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Global Error Handler
 app.use(errorHandler);
 

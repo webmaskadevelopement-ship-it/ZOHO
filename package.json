@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
+    "build": "node scripts/build.js",
     "test": "node --test tests/backend.test.js tests/firebase.test.js tests/login_validation.test.js tests/deep_audit_modules.test.js",
     "test:firebase": "node --test tests/firebase.test.js",
     "seed": "node src/db/seed.js",
