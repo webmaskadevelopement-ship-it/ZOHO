@@ -246,16 +246,8 @@ async function apiFetch(endpoint, options = {}) {
                 error: friendlyError,
                 details: rawText.slice(0, 120)
             };
-        try {
-            return await res.json();
-        } catch (jsonErr) {
-            return {
-                success: false,
-                status: res.status,
-                error: `Server response could not be parsed as JSON (HTTP ${res.status})`,
-                details: jsonErr.message
-            };
         }
+        return await res.json();
     } catch (err) {
         console.error(`API Fetch Error [${endpoint}]:`, err);
         return { success: false, error: err.message };
