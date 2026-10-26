@@ -1,6 +1,16 @@
 [build]
-  publish = "src/public"
+  publish = "dist"
   command = "npm run build"
+
+[[redirects]]
+  from = "/login"
+  to = "/login.html"
+  status = 200
+
+[[redirects]]
+  from = "/login/*"
+  to = "/login.html"
+  status = 200
 
 [[redirects]]
   from = "/*"

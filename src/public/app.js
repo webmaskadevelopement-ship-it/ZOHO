@@ -183,7 +183,21 @@ async function loginUser(email, customPassword = null) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-        const json = await res.json();
+        const contentType = res.headers.get('content-type') || '';
+        let json;
+        if (res.status === 404 || !contentType.includes('application/json')) {
+            const profile = USER_PROFILES[email] || { name: 'Nikhil Kaushik', role: 'admin' };
+            json = {
+                success: true,
+                data: {
+                    token: 'static-demo-token-' + Date.now(),
+                    user: { id: 'user-nikhil', name: profile.name, email, role: profile.role },
+                    portals: [{ id: 'portal-main', name: 'Life PMS Main' }]
+                }
+            };
+        } else {
+            json = await res.json();
+        }
         if (json.success) {
             currentToken = json.data.token;
             currentUser = json.data.user;
@@ -502,14 +516,292 @@ function handleStaticApi(endpoint, options = {}) {
         return {
             success: true,
             data: {
-                open: tasks.filter(t => !t.is_completed && t.status_id !== 'in_progress'),
-                in_progress: tasks.filter(t => t.status_id === 'in_progress'),
-                completed: tasks.filter(t => t.is_completed || t.status_id === 'completed')
+                columns: {
+                    open: tasks.filter(t => !t.is_completed && t.status_id !== 'in_progress'),
+                    in_progress: tasks.filter(t => t.status_id === 'in_progress'),
+                    in_review: tasks.filter(t => t.status_id === 'in_review'),
+                    completed: tasks.filter(t => t.is_completed || t.status_id === 'completed')
+                }
             }
         };
     }
 
-    // 8. Users & Roles
+    // 8. Gantt View
+    if (endpoint.includes('/views/gantt/')) {
+        const tasks = JSON.parse(localStorage.getItem('life_pms_tasks') || '[]');
+        return {
+            success: true,
+            data: {
+                tasks: tasks.filter(t => !t.projectId || t.projectId === currentProjectId)
+            }
+        };
+    }
+
+    // 9. Eisenhower Matrix View
+    if (endpoint.includes('/views/matrix/')) {
+        const tasks = JSON.parse(localStorage.getItem('life_pms_tasks') || '[]').filter(t => !t.projectId || t.projectId === currentProjectId);
+        return {
+            success: true,
+            data: {
+                doFirst: tasks.filter(t => t.priority === 'urgent' || t.priority === 'high'),
+                schedule: tasks.filter(t => t.priority === 'medium'),
+                delegate: tasks.filter(t => t.priority === 'low'),
+                eliminate: tasks.filter(t => t.priority === 'none')
+            }
+        };
+    }
+
+    // 10. Budgets & EVM Analytics
+    if (endpoint.includes('/budgets/evm/')) {
+        return {
+            success: true,
+            data: {
+                pv: 45000,
+                ev: 42000,
+                ac: 39000,
+                cv: 3000,
+                sv: -3000,
+                cpi: 1.08,
+                spi: 0.93,
+                bac: 45000,
+                eac: 41666,
+                vac: 3334,
+                tcpi: 1.00,
+                status: 'On Track',
+                currency: 'USD'
+            }
+        };
+    }
+
+    // 11. Invoices
+    if (endpoint.includes('/invoices/generate')) {
+        return {
+            success: true,
+            data: {
+                invoice_number: 'INV-' + Math.floor(1000 + Math.random() * 9000),
+                total_amount: 4800,
+                status: 'generated'
+            }
+        };
+    }
+
+    // 12. Timesheets
+    if (endpoint.includes('/timesheets')) {
+        let timesheets = JSON.parse(localStorage.getItem('life_pms_timesheets') || 'null');
+        if (!timesheets) {
+            timesheets = [
+                { id: 'ts-1', user_name: 'Nikhil Kaushik', task_name: 'System Architecture', log_date: '2026-10-24', hours: 8, is_billable: 1, status: 'approved' },
+                { id: 'ts-2', user_name: 'Devon Vance', task_name: 'Video Draft Pipeline', log_date: '2026-10-25', hours: 7.5, is_billable: 1, status: 'submitted' },
+                { id: 'ts-3', user_name: 'Sarah Jenkins', task_name: 'UI Review & Tokens', log_date: '2026-10-25', hours: 6, is_billable: 0, status: 'submitted' }
+            ];
+            localStorage.setItem('life_pms_timesheets', JSON.stringify(timesheets));
+        }
+        if (endpoint.includes('/approve')) {
+            const parts = endpoint.split('/');
+            const tsId = parts[parts.indexOf('timesheets') + 2] || parts[parts.length - 2];
+            const item = timesheets.find(t => t.id === tsId);
+            if (item) item.status = 'approved';
+            localStorage.setItem('life_pms_timesheets', JSON.stringify(timesheets));
+            return { success: true };
+        }
+        if (method === 'POST') {
+            const newTs = {
+                id: 'ts-' + Date.now().toString(36),
+                user_name: currentUser?.name || 'Nikhil Kaushik',
+                task_name: body.taskId || 'Task Work',
+                log_date: body.logDate || new Date().toISOString().split('T')[0],
+                hours: parseFloat(body.hours) || 4,
+                is_billable: body.isBillable ? 1 : 0,
+                status: 'submitted',
+                work_notes: body.workNotes || ''
+            };
+            timesheets.unshift(newTs);
+            localStorage.setItem('life_pms_timesheets', JSON.stringify(timesheets));
+            return { success: true, data: newTs };
+        }
+        return { success: true, data: timesheets };
+    }
+
+    // 13. Folders & Files (Document Vault)
+    if (endpoint.includes('/collaboration/folders')) {
+        let folders = JSON.parse(localStorage.getItem('life_pms_folders') || 'null');
+        if (!folders) {
+            folders = [
+                { id: 'folder-1', name: 'Design Assets', file_count: 3 },
+                { id: 'folder-2', name: 'Release Builds', file_count: 2 },
+                { id: 'folder-3', name: 'Documentation', file_count: 5 }
+            ];
+            localStorage.setItem('life_pms_folders', JSON.stringify(folders));
+        }
+        if (method === 'POST') {
+            const newFolder = { id: 'folder-' + Date.now().toString(36), name: body.name || 'New Folder', file_count: 0 };
+            folders.push(newFolder);
+            localStorage.setItem('life_pms_folders', JSON.stringify(folders));
+            return { success: true, data: newFolder };
+        }
+        return { success: true, data: folders };
+    }
+
+    if (endpoint.includes('/collaboration/files')) {
+        let files = JSON.parse(localStorage.getItem('life_pms_files') || 'null');
+        if (!files) {
+            files = [
+                { id: 'file-1', name: 'Architecture_Blueprint_v2.png', file_size: 1420000, version: 'v2', checked_out: 0, file_url: '' },
+                { id: 'file-2', name: 'Brand_Guidelines_2026.pdf', file_size: 3200000, version: 'v1', checked_out: 0, file_url: '' }
+            ];
+            localStorage.setItem('life_pms_files', JSON.stringify(files));
+        }
+        return { success: true, data: files };
+    }
+
+    // 14. Collaboration Comments
+    if (endpoint.includes('/collaboration/comments')) {
+        let comments = JSON.parse(localStorage.getItem('life_pms_comments') || '[]');
+        if (method === 'POST') {
+            const newComment = {
+                id: 'comment-' + Date.now().toString(36),
+                entity_id: body.entityId,
+                entity_type: body.entityType || 'task',
+                content: body.content || '',
+                user_name: currentUser?.name || 'Nikhil Kaushik',
+                created_at: new Date().toISOString()
+            };
+            comments.unshift(newComment);
+            localStorage.setItem('life_pms_comments', JSON.stringify(comments));
+            return { success: true, data: newComment };
+        }
+        const entityId = endpoint.split('/').pop();
+        const filtered = comments.filter(c => !entityId || c.entity_id === entityId);
+        return { success: true, data: filtered };
+    }
+
+    // 15. Notifications
+    if (endpoint.includes('/collaboration/notifications')) {
+        return {
+            success: true,
+            data: [
+                { id: 'notif-1', title: 'Task Assigned', message: 'You were assigned to Stitch AI integration', read: 0, created_at: new Date().toISOString() },
+                { id: 'notif-2', title: 'Sprint Review', message: 'WE-11 AI Training sprint retrospective tomorrow', read: 1, created_at: new Date().toISOString() }
+            ]
+        };
+    }
+
+    // 16. Blueprints State Machine
+    if (endpoint.includes('/blueprints')) {
+        let blueprints = JSON.parse(localStorage.getItem('life_pms_blueprints') || 'null');
+        if (!blueprints) {
+            blueprints = [
+                {
+                    id: 'bp-task-sdlc',
+                    name: 'Agile Software Lifecycle',
+                    entity_type: 'task',
+                    description: 'Enforces Open -> In Progress -> In Review -> Completed',
+                    transitions: [
+                        { name: 'Start Development', fromState: 'open', toState: 'in_progress', allowedRoles: ['admin', 'manager', 'employee'] },
+                        { name: 'Request QA Review', fromState: 'in_progress', toState: 'in_review', allowedRoles: ['admin', 'manager', 'employee'], promptFields: ['reviewNotes'] },
+                        { name: 'QA Approval', fromState: 'in_review', toState: 'completed', allowedRoles: ['admin', 'manager'] }
+                    ]
+                }
+            ];
+            localStorage.setItem('life_pms_blueprints', JSON.stringify(blueprints));
+        }
+        if (endpoint.includes('/execute-transition')) {
+            const tasks = JSON.parse(localStorage.getItem('life_pms_tasks') || '[]');
+            const task = tasks.find(t => t.id === body.taskId);
+            if (task) {
+                task.status_id = body.targetState;
+                if (body.targetState === 'completed') task.is_completed = 1;
+                localStorage.setItem('life_pms_tasks', JSON.stringify(tasks));
+            }
+            return { success: true, message: 'Transition executed successfully' };
+        }
+        if (method === 'POST') {
+            const newBp = {
+                id: 'bp-' + Date.now().toString(36),
+                name: body.name || 'New Blueprint',
+                entity_type: body.entityType || 'task',
+                description: body.description || '',
+                transitions: body.transitions || []
+            };
+            blueprints.push(newBp);
+            localStorage.setItem('life_pms_blueprints', JSON.stringify(blueprints));
+            return { success: true, data: newBp };
+        }
+        return { success: true, data: blueprints };
+    }
+
+    // 17. Reports & Flight Simulator
+    if (endpoint.includes('/reports/simulation/')) {
+        const slipDays = parseInt(endpoint.split('slipDays=')[1] || '5', 10);
+        return {
+            success: true,
+            data: {
+                slipDays,
+                recalculatedEndDate: '2026-11-20',
+                cpiImpact: -0.04,
+                prescriptiveMitigations: [
+                    'Fast-track Phase 2 critical path tasks',
+                    'Reallocate 1 dev from unassigned backlog items',
+                    'Authorize 10h overtime for QA sprint cycle'
+                ]
+            }
+        };
+    }
+
+    if (endpoint.includes('/reports/health-pulse/')) {
+        return {
+            success: true,
+            data: {
+                score: 94,
+                status: 'Optimal',
+                chokepointTasks: ['Single Point of Failure: Devon Vance assigned to 3 Critical Path tasks']
+            }
+        };
+    }
+
+    // 18. AI Copilot
+    if (endpoint.includes('/ai/wbs-copilot')) {
+        return {
+            success: true,
+            data: {
+                projectTitle: 'AI Generated WBS Breakdown',
+                phases: [
+                    { name: 'Discovery & Requirements', durationWeeks: 2, tasks: ['Stakeholder alignment', 'Architecture specification'] },
+                    { name: 'Core Engine Development', durationWeeks: 5, tasks: ['API gateway build', 'Database schema migration', 'State machine integration'] },
+                    { name: 'UI & Usability Review', durationWeeks: 3, tasks: ['Responsive styling pass', 'A11y testing', 'Gantt & Kanban validation'] },
+                    { name: 'Production Rollout', durationWeeks: 2, tasks: ['Cloud deployment & CDN warmup', 'E2E regression run'] }
+                ]
+            }
+        };
+    }
+
+    // 19. Convert Issue to Task
+    if (endpoint.includes('/convert-to-task')) {
+        const parts = endpoint.split('/');
+        const issueId = parts[parts.indexOf('issues') + 1];
+        const issues = JSON.parse(localStorage.getItem('life_pms_issues') || '[]');
+        const issue = issues.find(i => i.id === issueId);
+        const tasks = JSON.parse(localStorage.getItem('life_pms_tasks') || '[]');
+        const newTask = {
+            id: 'task-' + Date.now().toString(36),
+            projectId: currentProjectId,
+            taskListId: 'list-phase-system',
+            prefix_key: 'AE1-T' + (tasks.length + 41),
+            name: (issue ? issue.title : 'Converted Defect Task'),
+            description: (issue ? issue.description : ''),
+            priority: (issue ? issue.severity : 'high'),
+            status_id: 'open',
+            is_completed: 0,
+            start_date: new Date().toISOString().split('T')[0],
+            end_date: '',
+            owner_ids: ['user-nikhil']
+        };
+        tasks.unshift(newTask);
+        localStorage.setItem('life_pms_tasks', JSON.stringify(tasks));
+        return { success: true, data: newTask };
+    }
+
+    // 20. Users & Roles
     if (endpoint.includes('/roles/users')) {
         return {
             success: true,
@@ -517,7 +809,7 @@ function handleStaticApi(endpoint, options = {}) {
         };
     }
 
-    // 9. Invitations
+    // 21. Invitations
     if (endpoint.includes('/invite')) {
         if (window.firebaseAuthClient?.saveSubmittedEmailToFirebase) {
             window.firebaseAuthClient.saveSubmittedEmailToFirebase({
@@ -528,6 +820,26 @@ function handleStaticApi(endpoint, options = {}) {
             }).catch(() => {});
         }
         return { success: true, data: { email: body.email, role: body.role, message: 'Invitation saved' } };
+    }
+
+    // 22. Background Workers Manual Trigger
+    if (endpoint.includes('/workers/trigger')) {
+        return {
+            success: true,
+            results: {
+                slaEscalations: 0,
+                recurringTasksGenerated: 0,
+                remindersSent: 0
+            }
+        };
+    }
+
+    // 23. Firebase Email Submission
+    if (endpoint.includes('/integrations/firebase/submit-email')) {
+        let submitted = JSON.parse(localStorage.getItem('life_pms_submitted_emails') || '[]');
+        submitted.push({ email: body.email, date: new Date().toISOString() });
+        localStorage.setItem('life_pms_submitted_emails', JSON.stringify(submitted));
+        return { success: true };
     }
 
     // Default safe response
@@ -1773,7 +2085,24 @@ function setupDocumentVault() {
                 body: formData
             });
 
-            const json = await res.json();
+            const contentType = res.headers.get('content-type') || '';
+            let json;
+            if (res.status === 404 || !contentType.includes('application/json')) {
+                const files = JSON.parse(localStorage.getItem('life_pms_files') || '[]');
+                const newFile = {
+                    id: 'file-' + Date.now().toString(36),
+                    name: file.name,
+                    file_size: file.size,
+                    version: 'v1',
+                    checked_out: 0,
+                    file_url: ''
+                };
+                files.unshift(newFile);
+                localStorage.setItem('life_pms_files', JSON.stringify(files));
+                json = { success: true, data: newFile };
+            } else {
+                json = await res.json();
+            }
             if (json.success) {
                 alert(`✓ File "${file.name}" uploaded and synced with Firebase Storage successfully!`);
                 await loadDocumentVault();
@@ -2884,9 +3213,8 @@ function setupLiveChatDrawer() {
                     portalId: currentPortalId
                 });
             } else {
-                await fetch('/api/v1/integrations/firebase/submit-email', {
+                await apiFetch('/api/v1/integrations/firebase/submit-email', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email,
                         name: 'Live Chat Visitor',
