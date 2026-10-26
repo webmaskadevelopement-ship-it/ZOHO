@@ -31,3 +31,5 @@ dist/
 build/
 coverage/
 .system_generated/
+*.db-wal
+*.db-shm
