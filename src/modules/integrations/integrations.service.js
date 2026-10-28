@@ -82,7 +82,7 @@ class IntegrationsService {
      * Git Webhook Integration:
      * Parses commit message or PR body (e.g., "Fixes #BUG-1" or "Resolves #ZPA-101")
      */
-    static handleGitWebhook(portalId, { commitMessage, commitSha, branch, author }) {
+    static handleGitWebhook(portalId, { commitMessage, commitSha, branch, author, projectId }) {
         const bugMatch = commitMessage.match(/(?:Fixes|Resolves|Closes)\s+#(BUG-\d+)/i);
         const taskMatch = commitMessage.match(/(?:Fixes|Resolves|Closes)\s+#([A-Z]{2,4}-\d+)/i);
 
@@ -90,7 +90,13 @@ class IntegrationsService {
 
         if (bugMatch) {
             const bugKey = bugMatch[1].toUpperCase();
-            const issue = db.queryOne('SELECT id, project_id FROM issues WHERE prefix_key = ? AND portal_id = ?', [bugKey, portalId]);
+            let issue = null;
+            if (projectId) {
+                issue = db.queryOne('SELECT id, project_id FROM issues WHERE prefix_key = ? AND portal_id = ? AND project_id = ? ORDER BY created_at DESC', [bugKey, portalId, projectId]);
+            }
+            if (!issue) {
+                issue = db.queryOne('SELECT id, project_id FROM issues WHERE prefix_key = ? AND portal_id = ? ORDER BY created_at DESC', [bugKey, portalId]);
+            }
             if (issue) {
                 IssuesService.updateIssue(portalId, issue.id, {
                     statusId: 'closed',
@@ -102,7 +108,13 @@ class IntegrationsService {
 
         if (taskMatch) {
             const taskKey = taskMatch[1].toUpperCase();
-            const task = db.queryOne('SELECT id, project_id FROM tasks WHERE prefix_key = ? AND portal_id = ?', [taskKey, portalId]);
+            let task = null;
+            if (projectId) {
+                task = db.queryOne('SELECT id, project_id FROM tasks WHERE prefix_key = ? AND portal_id = ? AND project_id = ? ORDER BY created_at DESC', [taskKey, portalId, projectId]);
+            }
+            if (!task) {
+                task = db.queryOne('SELECT id, project_id FROM tasks WHERE prefix_key = ? AND portal_id = ? ORDER BY created_at DESC', [taskKey, portalId]);
+            }
             if (task) {
                 TasksService.updateTask(portalId, task.id, {
                     statusId: 'completed',

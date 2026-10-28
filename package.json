@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "build": "node scripts/build.js",
-    "test": "node --test tests/backend.test.js tests/firebase.test.js tests/login_validation.test.js tests/deep_audit_modules.test.js",
+    "test": "node --test tests/backend.test.js tests/firebase.test.js tests/login_validation.test.js tests/deep_audit_modules.test.js tests/email_sharing.test.js tests/invitation_verification.test.js",
     "test:firebase": "node --test tests/firebase.test.js",
     "seed": "node src/db/seed.js",
     "data:import": "node scripts/importRealData.js"

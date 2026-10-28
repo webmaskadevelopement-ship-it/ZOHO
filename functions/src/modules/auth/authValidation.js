@@ -1,21 +1,11 @@
 /**
  * Firebase Auth & Firestore Validation Module
- * Enforces email whitelist check (users / invited_members) and name matching.
+ * Enforces canonical RBAC role resolution and Google Sign-In provisioning.
  */
 
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
-
-// Role normalizer: maps UI selections (Admin, Manager, Client, PM, Lead) to system roles
-function normalizeRole(roleInput) {
-    if (!roleInput) return 'employee';
-    const r = roleInput.toLowerCase().trim();
-    if (r === 'admin' || r === 'administrator') return 'admin';
-    if (r === 'manager' || r === 'pm' || r === 'project manager') return 'manager';
-    if (r === 'client' || r === 'stakeholder') return 'client';
-    if (r === 'lead' || r === 'developer' || r === 'employee' || r === 'qa') return 'employee';
-    return 'employee';
-}
+const { resolveAuthorizedRole, normalizeRole } = require('../../config/roles');
 
 // Clean human name comparison (case-insensitive, handles dots/underscores/dashes, ignores titles in parens)
 function namesMatch(storedName, inputName) {
@@ -38,7 +28,7 @@ function namesMatch(storedName, inputName) {
 
 class AuthValidationService {
     /**
-     * Validate login with Name, Email, and Role against Firestore and local database
+     * Validate legacy login with Name and Email (for backwards compatibility)
      */
     static async validateLogin({ email, name, role, db = null, sqliteDb = null }) {
         if (!email || !name) {
@@ -47,7 +37,6 @@ class AuthValidationService {
 
         const cleanEmail = email.toLowerCase().trim();
         const cleanName = name.trim();
-        const mappedRole = normalizeRole(role);
 
         let user = null;
         let invited = null;
@@ -64,9 +53,7 @@ class AuthValidationService {
                         invited = { id: inviteSnapshot.docs[0].id, ...inviteSnapshot.docs[0].data() };
                     }
                 }
-            } catch (err) {
-                // If live Firestore fails or is not connected, fallback to SQLite
-            }
+            } catch (err) {}
         }
 
         // 2. Fallback to SQLite database if not found in Firestore
@@ -78,23 +65,24 @@ class AuthValidationService {
             }
         }
 
-        // 3. Email Whitelist Validation (CRITICAL): Check if email exists in users or invited_members
+        // 3. User existence validation
         if (!user && !invited) {
             throw new Error('User not found. Please contact admin or use invited email.');
         }
 
-        // 4. Name Match Validation (CRITICAL): Name entered should match name stored for that email (case-insensitive)
+        const resolvedRole = resolveAuthorizedRole(cleanEmail, user?.role || invited?.role);
+
+        // 4. Name Match Validation
         if (user) {
             if (!namesMatch(user.name, cleanName)) {
                 throw new Error('Name does not match the registered user for this email.');
             }
 
-            // Update role if explicitly selected
-            if (role && user.role !== mappedRole) {
+            if (user.role !== resolvedRole) {
                 const dbRef = sqliteDb || require('../../../../src/db/database');
                 try {
-                    dbRef.execute('UPDATE users SET role = ?, updated_at = ? WHERE id = ?', [mappedRole, new Date().toISOString(), user.id]);
-                    user.role = mappedRole;
+                    dbRef.execute('UPDATE users SET role = ?, updated_at = ? WHERE id = ?', [resolvedRole, new Date().toISOString(), user.id]);
+                    user.role = resolvedRole;
                 } catch (e) {}
             }
         } else if (invited) {
@@ -106,18 +94,17 @@ class AuthValidationService {
             const dbRef = sqliteDb || require('../../../../src/db/database');
             const newId = uuidv4();
             const now = new Date().toISOString();
-            const userRole = mappedRole || normalizeRole(invited.role);
 
             dbRef.execute(`
                 INSERT INTO users (id, email, password_hash, name, role, department, created_at, updated_at)
                 VALUES (?, ?, 'INVITED_AUTO_PROVISIONED', ?, ?, 'Team', ?, ?)
-            `, [newId, cleanEmail, invited.name, userRole, now, now]);
+            `, [newId, cleanEmail, invited.name, resolvedRole, now, now]);
 
             // Add to default portal
             dbRef.execute(`
                 INSERT INTO portal_members (id, portal_id, user_id, role, status, created_at)
                 VALUES (?, 'portal-demo-zoho', ?, ?, 'active', ?)
-            `, [uuidv4(), newId, userRole, now]);
+            `, [uuidv4(), newId, resolvedRole, now]);
 
             // Mark invite accepted
             dbRef.execute(`
@@ -149,15 +136,18 @@ class AuthValidationService {
     }
 
     /**
-     * Validate Google Login: Check if email exists in users or invited_members
+     * Validate Google Login: Resolves canonical role (admin, manager, or member)
+     * Auto-provisions new Google-authenticated users without 'Not invited' restrictions.
      */
-    static async validateGoogleLogin({ email, name, idToken = null, role = 'employee', db = null, sqliteDb = null }) {
+    static async validateGoogleLogin({ email, name, idToken = null, role = null, db = null, sqliteDb = null }) {
         if (!email) {
             throw new Error('Google email is required.');
         }
 
         const cleanEmail = email.toLowerCase().trim();
         const cleanName = name || cleanEmail.split('@')[0];
+        const now = new Date().toISOString();
+
         let user = null;
         let invited = null;
 
@@ -177,81 +167,93 @@ class AuthValidationService {
         }
 
         // 2. Fallback to SQLite database
-        if (!user && !invited) {
-            const dbRef = sqliteDb || require('../../../../src/db/database');
+        const dbRef = sqliteDb || require('../../../../src/db/database');
+        if (!user) {
             user = dbRef.queryOne('SELECT * FROM users WHERE LOWER(email) = ?', [cleanEmail]);
-            if (!user) {
-                invited = dbRef.queryOne('SELECT * FROM invited_members WHERE LOWER(email) = ?', [cleanEmail]);
+        }
+        if (!invited) {
+            invited = dbRef.queryOne('SELECT * FROM invited_members WHERE LOWER(email) = ?', [cleanEmail]);
+        }
+
+        // 3. Resolve canonical role:
+        // webmaskadevelopement@gmail.com -> admin
+        // backend.webmaska@gmail.com -> manager
+        // other valid Google account -> member (or existing role if already set)
+        const resolvedRole = resolveAuthorizedRole(cleanEmail, user?.role || invited?.role);
+
+        if (user) {
+            // Update role if changed
+            if (user.role !== resolvedRole) {
+                try {
+                    dbRef.execute('UPDATE users SET role = ?, updated_at = ? WHERE id = ?', [resolvedRole, now, user.id]);
+                    user.role = resolvedRole;
+                } catch (e) {}
+            }
+            if (invited && invited.status === 'pending') {
+                try {
+                    dbRef.execute(`UPDATE invited_members SET status = 'accepted', accepted_at = ?, updated_at = ? WHERE id = ?`, [now, now, invited.id]);
+                } catch (e) {}
+            }
+        } else {
+            // Auto-provision brand new Google user into SQLite
+            const newId = uuidv4();
+            try {
+                dbRef.execute(`
+                    INSERT INTO users (id, email, password_hash, name, role, department, created_at, updated_at)
+                    VALUES (?, ?, 'GOOGLE_AUTO_PROVISIONED', ?, ?, 'Team', ?, ?)
+                `, [newId, cleanEmail, cleanName, resolvedRole, now, now]);
+
+                dbRef.execute(`
+                    INSERT INTO portal_members (id, portal_id, user_id, role, status, created_at)
+                    VALUES (?, 'portal-demo-zoho', ?, ?, 'active', ?)
+                `, [uuidv4(), newId, resolvedRole, now]);
+
+                if (invited) {
+                    dbRef.execute(`
+                        UPDATE invited_members SET status = 'accepted', accepted_at = ?, updated_at = ? WHERE id = ?
+                    `, [now, now, invited.id]);
+                }
+
+                user = dbRef.queryOne('SELECT * FROM users WHERE id = ?', [newId]);
+            } catch (err) {
+                user = { id: newId, email: cleanEmail, name: cleanName, role: resolvedRole, department: 'Team' };
             }
         }
 
-        // 3. If exists, allow login
-        if (user) {
-            const jwtSecret = process.env.JWT_SECRET || 'zoho-pms-super-secret-dev-jwt-key-2026';
-            const token = jwt.sign(
-                { userId: user.id, email: user.email, role: user.role, name: user.name },
-                jwtSecret,
-                { expiresIn: '7d' }
-            );
-
-            return {
-                success: true,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                    department: user.department || 'Team'
-                },
-                token
-            };
+        // 4. Upsert into Firestore `users` collection if connected
+        if (db && typeof db.collection === 'function') {
+            try {
+                await db.collection('users').doc(cleanEmail).set({
+                    uid: user?.id || cleanEmail,
+                    email: cleanEmail,
+                    name: cleanName,
+                    role: resolvedRole,
+                    status: 'active',
+                    lastLoginAt: now,
+                    updatedAt: now
+                }, { merge: true });
+            } catch (e) {}
         }
 
-        // 4. If new user, check if email is in invites collection. If invited, auto-create user and allow.
-        if (invited) {
-            const dbRef = sqliteDb || require('../../../../src/db/database');
-            const newId = uuidv4();
-            const now = new Date().toISOString();
-            const userRole = normalizeRole(invited.role || role);
+        // 5. Issue session JWT
+        const jwtSecret = process.env.JWT_SECRET || 'zoho-pms-super-secret-dev-jwt-key-2026';
+        const token = jwt.sign(
+            { userId: user.id, email: cleanEmail, role: resolvedRole, name: cleanName },
+            jwtSecret,
+            { expiresIn: '7d' }
+        );
 
-            dbRef.execute(`
-                INSERT INTO users (id, email, password_hash, name, role, department, created_at, updated_at)
-                VALUES (?, ?, 'GOOGLE_AUTO_PROVISIONED', ?, ?, 'Team', ?, ?)
-            `, [newId, cleanEmail, invited.name || cleanName, userRole, now, now]);
-
-            dbRef.execute(`
-                INSERT INTO portal_members (id, portal_id, user_id, role, status, created_at)
-                VALUES (?, 'portal-demo-zoho', ?, ?, 'active', ?)
-            `, [uuidv4(), newId, userRole, now]);
-
-            dbRef.execute(`
-                UPDATE invited_members SET status = 'accepted', updated_at = ? WHERE id = ?
-            `, [now, invited.id]);
-
-            user = dbRef.queryOne('SELECT * FROM users WHERE id = ?', [newId]);
-
-            const jwtSecret = process.env.JWT_SECRET || 'zoho-pms-super-secret-dev-jwt-key-2026';
-            const token = jwt.sign(
-                { userId: user.id, email: user.email, role: user.role, name: user.name },
-                jwtSecret,
-                { expiresIn: '7d' }
-            );
-
-            return {
-                success: true,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                    department: user.department || 'Team'
-                },
-                token
-            };
-        }
-
-        // 5. If not invited and not in users, block with "Not invited" message
-        throw new Error('Not invited. Please contact admin or use invited email.');
+        return {
+            success: true,
+            user: {
+                id: user.id,
+                email: cleanEmail,
+                name: cleanName,
+                role: resolvedRole,
+                department: user.department || 'Team'
+            },
+            token
+        };
     }
 }
 

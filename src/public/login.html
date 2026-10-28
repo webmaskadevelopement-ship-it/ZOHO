@@ -16,7 +16,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: var(--font-sans);
+            font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
             padding: 24px;
             margin: 0;
             overflow-y: auto;
@@ -39,19 +39,19 @@
         }
 
         .login-brand-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
             background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             color: #FFFFFF;
-            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.25);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
         }
 
         .login-brand-title {
-            font-size: 19px;
+            font-size: 20px;
             font-weight: 700;
             color: #0F172A;
             letter-spacing: -0.02em;
@@ -59,33 +59,36 @@
 
         .login-card {
             background-color: #FFFFFF;
-            border: 1px solid var(--border-card, #F1F5F9);
+            border: 1px solid var(--border-card, #E2E8F0);
             border-radius: var(--radius-xl, 12px);
-            padding: 32px 28px;
+            padding: 36px 32px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 22px;
         }
 
         .login-card-intro h1 {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             color: #0F172A;
-            margin-bottom: 4px;
+            margin: 0 0 6px 0;
+            letter-spacing: -0.01em;
         }
 
         .login-card-intro p {
-            font-size: 12.5px;
+            font-size: 13px;
             color: #64748B;
+            line-height: 1.5;
+            margin: 0;
         }
 
         /* Error Toast / Alert */
         .login-alert-toast {
             display: none;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 12px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
             font-weight: 500;
             line-height: 1.4;
             background-color: #FFE4E6;
@@ -100,88 +103,15 @@
             border-color: #BBF7D0;
         }
 
+        .login-alert-toast.toast-info {
+            background-color: #E0F2FE;
+            color: #0369A1;
+            border-color: #BAE6FD;
+        }
+
         @keyframes fadeInToast {
             from { opacity: 0; transform: translateY(-4px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .login-form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .login-form-group label {
-            font-size: 12px;
-            font-weight: 500;
-            color: #334155;
-        }
-
-        .login-input, .login-select {
-            width: 100%;
-            padding: 9px 12px;
-            background-color: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: var(--radius-md, 6px);
-            font-size: 13px;
-            color: #0F172A;
-            outline: none;
-            transition: all 0.15s ease;
-            box-sizing: border-box;
-        }
-
-        .login-input:focus, .login-select:focus {
-            border-color: #0EA5E9;
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
-        }
-
-        .btn-login-submit {
-            width: 100%;
-            padding: 10px 16px;
-            background-color: #0EA5E9;
-            color: #FFFFFF;
-            border: 1px solid #0284C7;
-            border-radius: var(--radius-md, 6px);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            box-shadow: 0 1px 3px rgba(14, 165, 233, 0.3);
-            margin-top: 4px;
-        }
-
-        .btn-login-submit:hover {
-            background-color: #0284C7;
-        }
-
-        .btn-login-submit:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* Divider */
-        .login-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 4px 0;
-            color: #94A3B8;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .login-divider::before, .login-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background-color: #E2E8F0;
         }
 
         /* Google Login Button */
@@ -189,70 +119,49 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             width: 100%;
-            padding: 9px 16px;
+            padding: 12px 18px;
             background-color: #FFFFFF;
             color: #1E293B;
-            border: 1px solid #CBD5E1;
-            border-radius: var(--radius-md, 6px);
-            font-size: 13px;
-            font-weight: 500;
+            border: 1.5px solid #CBD5E1;
+            border-radius: var(--radius-md, 8px);
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.15s ease;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .btn-google-login:hover {
             background-color: #F8FAFC;
             border-color: #94A3B8;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-google-login:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
         }
 
         .google-icon-svg {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             flex-shrink: 0;
         }
 
-        /* Demo Quick-Fill Persona Chips */
-        .demo-personas-box {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding-top: 14px;
+        .login-footer-info {
+            font-size: 12px;
+            color: #94A3B8;
+            text-align: center;
+            line-height: 1.5;
+            margin: 0;
+            padding-top: 6px;
             border-top: 1px solid #F1F5F9;
         }
 
-        .demo-personas-label {
-            font-size: 11px;
-            font-weight: 600;
+        .login-footer-info strong {
             color: #64748B;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        .demo-chips-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .btn-demo-chip {
-            padding: 4px 9px;
-            border-radius: 4px;
-            border: 1px solid #E2E8F0;
-            background-color: #F8FAFC;
-            font-size: 11.5px;
-            font-weight: 500;
-            color: #334155;
-            cursor: pointer;
-            transition: all 0.12s ease;
-        }
-
-        .btn-demo-chip:hover {
-            background-color: #E0F2FE;
-            color: #0284C7;
-            border-color: #BAE6FD;
         }
     </style>
 </head>
@@ -262,7 +171,7 @@
         <!-- Brand Header -->
         <div class="login-brand-header">
             <div class="login-brand-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                     <polyline points="2 17 12 22 22 17"></polyline>
                     <polyline points="2 12 12 17 22 12"></polyline>
@@ -275,48 +184,27 @@
         <div class="login-card">
             <div class="login-card-intro">
                 <h1>Sign in to workspace</h1>
-                <p>Enter your name and registered email to continue to your dashboard.</p>
+                <p>Authenticate with your verified Google account. Approved administrative and manager roles are mapped automatically.</p>
             </div>
 
-            <!-- Error Toast / Alert Banner -->
+            <!-- Invitation Welcome Banner -->
+            <div id="inviteBannerCard" style="display:none; background: #F0F9FF; border: 1.5px solid #BAE6FD; border-radius: 8px; padding: 14px 16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:600; color:#0369A1; font-size:13.5px; margin-bottom:4px;">
+                    <span>📨 Workspace Invitation</span>
+                    <span id="inviteRoleBadge" style="background:#0284C7; color:#fff; font-size:10.5px; padding:2px 8px; border-radius:12px; font-weight:700; text-transform:uppercase;">MEMBER</span>
+                </div>
+                <div style="font-size:12.5px; color:#334155; line-height:1.45;">
+                    You have been invited to join this workspace as <strong id="inviteEmailDisplay">collaborator</strong>.
+                </div>
+                <div id="inviteProjectNotice" style="display:none; font-size:12px; color:#0284C7; margin-top:6px; font-weight:500;">
+                    📁 Direct project workspace access included.
+                </div>
+            </div>
+
+            <!-- Error / Info Toast Banner -->
             <div id="loginAlertToast" class="login-alert-toast" role="alert"></div>
 
-            <!-- Login Form (Field 1: Name, Field 2: Email, Field 3: Role Selector) -->
-            <form id="loginForm" class="login-form">
-                <!-- Field 1: Name (text input) -->
-                <div class="login-form-group">
-                    <label for="loginName">Full Name</label>
-                    <input type="text" id="loginName" class="login-input" placeholder="e.g. Devon Vance" required autocomplete="name">
-                </div>
-
-                <!-- Field 2: Email ID (email input) -->
-                <div class="login-form-group">
-                    <label for="loginEmail">Email Address</label>
-                    <input type="email" id="loginEmail" class="login-input" placeholder="name@company.com" required autocomplete="email">
-                </div>
-
-                <!-- Field 3: Role Selector (Dropdown: Admin / Manager / Client / PM / Lead) -->
-                <div class="login-form-group">
-                    <label for="loginRole">Workspace Role</label>
-                    <select id="loginRole" class="login-select">
-                        <option value="Lead" selected>Lead (Engineering / QA)</option>
-                        <option value="Admin">Admin (Executive Director)</option>
-                        <option value="Manager">Manager (Project Manager)</option>
-                        <option value="PM">PM (Product Manager)</option>
-                        <option value="Client">Client (Stakeholder)</option>
-                    </select>
-                </div>
-
-                <!-- Button: "Login" / "Continue" -->
-                <button type="submit" id="btnLoginSubmit" class="btn-login-submit">
-                    Login / Continue
-                </button>
-            </form>
-
-            <!-- Divider: OR -->
-            <div class="login-divider">OR</div>
-
-            <!-- Button: "Continue with Google" with Google icon -->
+            <!-- Google Login Button (Only Permitted Method) -->
             <button type="button" id="btnGoogleLogin" class="btn-google-login">
                 <svg class="google-icon-svg" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -324,21 +212,14 @@
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
                 </svg>
-                <span>Continue with Google</span>
+                <span id="googleBtnText">Continue with Google</span>
             </button>
 
-            <!-- Quick Demo Persona Fill Chips -->
-            <div class="demo-personas-box">
-                <span class="demo-personas-label">Quick Sign-In Credentials</span>
-                <div class="demo-chips-grid">
-                    <button type="button" class="btn-demo-chip" data-name="Nikhil Kaushik" data-email="nikhil@lifepms.com" data-role="Admin">Nikhil Kaushik (Lead/Admin)</button>
-                    <button type="button" class="btn-demo-chip" data-name="Divyansh Verma" data-email="divyansh@lifepms.com" data-role="Admin">Divyansh Verma (Admin)</button>
-                    <button type="button" class="btn-demo-chip" data-name="Ritika Sharma" data-email="ritikasharma49527@gmail.com" data-role="Lead">Ritika Sharma</button>
-                    <button type="button" class="btn-demo-chip" data-name="Backend Webmaska" data-email="backend.webmaska@gmail.com" data-role="Lead">Backend Webmaska</button>
-                    <button type="button" class="btn-demo-chip" data-name="Sarah Jenkins" data-email="manager@lifepms.com" data-role="PM">Sarah Jenkins (PM)</button>
-                    <button type="button" class="btn-demo-chip" data-name="Devon Vance" data-email="dev@lifepms.com" data-role="Lead">Devon Vance (Lead)</button>
-                </div>
-            </div>
+            <!-- Security Footer Note -->
+            <p class="login-footer-info">
+                Secured by <strong>Firebase Authentication (zoho-cda77)</strong>.<br>
+                Administrative, Manager &amp; Member permissions applied cryptographically.
+            </p>
         </div>
     </div>
 
@@ -347,15 +228,16 @@
 
     <!-- Login Page Logic -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('loginForm');
+        document.addEventListener('DOMContentLoaded', async () => {
             const alertToast = document.getElementById('loginAlertToast');
-            const submitBtn = document.getElementById('btnLoginSubmit');
             const googleBtn = document.getElementById('btnGoogleLogin');
+            const googleBtnText = document.getElementById('googleBtnText');
 
-            function showToast(message, isSuccess = false) {
+            function showToast(message, type = 'error') {
                 alertToast.textContent = message;
-                alertToast.className = isSuccess ? 'login-alert-toast toast-success' : 'login-alert-toast';
+                alertToast.className = 'login-alert-toast';
+                if (type === 'success') alertToast.classList.add('toast-success');
+                else if (type === 'info') alertToast.classList.add('toast-info');
                 alertToast.style.display = 'block';
             }
 
@@ -363,190 +245,178 @@
                 alertToast.style.display = 'none';
             }
 
-            // Demo Chips Click -> Fill inputs
-            document.querySelectorAll('.btn-demo-chip').forEach(chip => {
-                chip.addEventListener('click', () => {
-                    document.getElementById('loginName').value = chip.getAttribute('data-name');
-                    document.getElementById('loginEmail').value = chip.getAttribute('data-email');
-                    document.getElementById('loginRole').value = chip.getAttribute('data-role');
-                    hideToast();
-                });
-            });
-
-            // Robust Auth API Dispatcher: handles current origin, localhost:5000 fallback, and persona matching
-            async function requestAuthApi(endpoint, body) {
-                const SYSTEM_PERSONAS = {
-                    'nikhil@lifepms.com': { name: 'Nikhil Kaushik', role: 'admin', id: 'user-nikhil', department: 'Engineering' },
-                    'sarah@lifepms.com': { name: 'Sarah Jenkins', role: 'manager', id: 'user-sarah', department: 'Engineering' },
-                    'dev@lifepms.com': { name: 'Devon Vance', role: 'employee', id: 'user-dev', department: 'Development' },
-                    'qa@lifepms.com': { name: 'Quinn Adams', role: 'employee', id: 'user-qa', department: 'Quality Assurance' },
-                    'chloe@lifepms.com': { name: 'Chloe Stakeholder', role: 'client', id: 'user-chloe', department: 'External Stakeholder' },
-                    'divyansh@lifepms.com': { name: 'Divyansh Verma', role: 'admin', id: 'user-divyansh', department: 'Executive' },
-                    'ritika@lifepms.com': { name: 'Ritika Sharma', role: 'employee', id: 'user-ritika', department: 'Creative Design' },
-                    'admin@lifepms.com': { name: 'Alex Chen', role: 'admin', id: 'user-admin', department: 'Executive' },
-                    'manager@lifepms.com': { name: 'Sarah Jenkins', role: 'manager', id: 'user-manager', department: 'Engineering' }
-                };
-
-                const originsToTry = [''];
-                if (window.location.port !== '5000') {
-                    originsToTry.push('http://localhost:5000');
-                }
-
-                for (const base of originsToTry) {
-                    try {
-                        const url = base ? `${base}${endpoint}` : endpoint;
-                        const res = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body)
-                        });
-
-                        const contentType = res.headers.get('content-type') || '';
-                        if (contentType.includes('application/json')) {
-                            const json = await res.json();
-                            return json;
-                        }
-                    } catch (netErr) {
-                        // Continue to next origin candidate
-                    }
-                }
-
-                // Fallback for static/dev hosting when server API is not on same host
-                const targetEmail = (body.email || '').toLowerCase().trim();
-                const matchedPersona = SYSTEM_PERSONAS[targetEmail];
-                if (matchedPersona) {
-                    const reqName = (body.name || '').toLowerCase().trim();
-                    const personaName = matchedPersona.name.toLowerCase().trim();
-                    if (!reqName || reqName === personaName || reqName.includes(personaName.split(' ')[0])) {
-                        return {
-                            success: true,
-                            data: {
-                                success: true,
-                                user: { ...matchedPersona, name: body.name || matchedPersona.name, role: body.role || matchedPersona.role },
-                                token: 'pms-static-jwt-token-' + btoa(targetEmail)
-                            }
-                        };
-                    }
-                }
-
-                return {
-                    success: false,
-                    error: 'Unable to verify credentials. Please ensure the server is active on http://localhost:5000.'
-                };
-            }
-
             function getRedirectUrl() {
+                const params = new URLSearchParams(window.location.search);
+                const redirectParam = params.get('redirect');
+                if (redirectParam && (redirectParam.startsWith('/') || redirectParam.startsWith('#'))) {
+                    return redirectParam;
+                }
+                const projParam = params.get('projectId');
+                if (projParam) {
+                    return `/#project/${projParam}/tasks`;
+                }
                 if (window.location.pathname.includes('/src/public/')) {
                     return 'index.html';
                 }
                 return '/';
             }
 
-            // Form Submit: Validate Name, Email, Role
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                hideToast();
+            // Verify Invitation if token or email is present in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteToken = urlParams.get('token') || urlParams.get('code');
+            const inviteEmail = urlParams.get('inviteEmail') || urlParams.get('email');
+            const inviteName = urlParams.get('inviteName') || urlParams.get('name');
+            const inviteRole = urlParams.get('role');
+            const projectId = urlParams.get('projectId');
 
-                const name = document.getElementById('loginName').value.trim();
-                const email = document.getElementById('loginEmail').value.trim();
-                const role = document.getElementById('loginRole').value;
-
-                if (!name || !email) {
-                    showToast('Please provide both Full Name and Email Address.');
-                    return;
-                }
-
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Validating credentials...';
-
+            if (inviteToken || inviteEmail) {
+                const query = inviteToken ? `token=${encodeURIComponent(inviteToken)}` : `email=${encodeURIComponent(inviteEmail)}`;
                 try {
-                    const data = await requestAuthApi('/api/v1/auth/validate-login', { name, email, role });
-
-                    if (!data.success) {
-                        showToast(data.error || 'User not found. Please contact admin or use invited email.');
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Login / Continue';
-                        return;
+                    let res = await fetch(`/api/v1/portals/invite/verify?${query}`).then(r => r.json()).catch(() => null);
+                    if (!res || !res.success) {
+                        res = await fetch(`/.netlify/functions/api/v1/portals/invite/verify?${query}`).then(r => r.json()).catch(() => null);
+                    }
+                    if (!res) {
+                        res = { success: true, valid: true, data: { email: inviteEmail, name: inviteName, role: inviteRole } };
                     }
 
-                    // On Success: Set auth, save token, redirect to dashboard
-                    localStorage.setItem('life_pms_token', data.data.token);
-                    localStorage.setItem('life_pms_user', JSON.stringify(data.data.user));
-                    showToast('Welcome back, ' + data.data.user.name + '! Redirecting...', true);
+                    const banner = document.getElementById('inviteBannerCard');
+                    const roleBadge = document.getElementById('inviteRoleBadge');
+                    const emailDisplay = document.getElementById('inviteEmailDisplay');
+                    const projNotice = document.getElementById('inviteProjectNotice');
 
-                    setTimeout(() => {
-                        window.location.href = getRedirectUrl();
-                    }, 400);
-
-                } catch (err) {
-                    showToast(err.message || 'Validation request failed.');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Login / Continue';
+                    if (res.expired) {
+                        showToast('⚠️ This invitation link has expired. Please contact the administrator for a fresh invite.', 'error');
+                    } else if (res.alreadyAccepted) {
+                        showToast('ℹ️ This invitation has already been accepted. Sign in with Google to continue.', 'info');
+                        if (banner) {
+                            banner.style.display = 'block';
+                            banner.style.background = '#F8FAFC';
+                            banner.style.borderColor = '#CBD5E1';
+                            if (roleBadge) {
+                                roleBadge.textContent = 'ACTIVATED';
+                                roleBadge.style.background = '#10B981';
+                            }
+                            if (emailDisplay) emailDisplay.textContent = res.data?.email || inviteEmail;
+                        }
+                    } else if (res.valid && res.data) {
+                        if (banner) {
+                            banner.style.display = 'block';
+                            if (roleBadge) roleBadge.textContent = (res.data.role || inviteRole || 'member').toUpperCase();
+                            if (emailDisplay) emailDisplay.textContent = res.data.email || inviteEmail;
+                            if (projNotice && (res.data.projectId || projectId)) projNotice.style.display = 'block';
+                        }
+                        showToast(`Invitation verified for ${res.data.name || res.data.email}. Please sign in with Google to access.`, 'info');
+                    }
+                } catch (vErr) {
+                    console.warn('[Invite Verify Error]', vErr);
                 }
-            });
+            }
 
-            // Google Login
+            // If already authenticated with active session, seamlessly route to intended project/resource
+            const existingToken = localStorage.getItem('life_pms_token');
+            const existingUser = localStorage.getItem('life_pms_user');
+            if (existingToken && existingUser) {
+                window.location.href = getRedirectUrl();
+                return;
+            }
+
+            // Check if user just returned from a mobile Google Sign-In redirect
+            try {
+                // Wait briefly for firebaseAuthClient module to be available on window
+                let attempts = 0;
+                while (!window.firebaseAuthClient && attempts < 20) {
+                    await new Promise(r => setTimeout(r, 100));
+                    attempts++;
+                }
+
+                if (window.firebaseAuthClient?.checkRedirectLogin) {
+                    const redirectResult = await window.firebaseAuthClient.checkRedirectLogin();
+                    if (redirectResult && redirectResult.success) {
+                        const user = redirectResult.backendResult?.user || redirectResult.backendResult?.data?.user;
+                        const token = redirectResult.backendResult?.token || redirectResult.backendResult?.data?.token;
+                        if (token && user) {
+                            localStorage.setItem('life_pms_token', token);
+                            localStorage.setItem('life_pms_user', JSON.stringify(user));
+                            showToast(`Authenticated as ${user.name} (${user.role}). Redirecting...`, 'success');
+                            setTimeout(() => { window.location.href = getRedirectUrl(); }, 350);
+                            return;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('[Login Page] Redirect check notice:', err);
+            }
+
+            // Google Login Click
             googleBtn.addEventListener('click', async () => {
                 hideToast();
-                const role = document.getElementById('loginRole').value || 'Lead';
 
                 if (!window.firebaseAuthClient) {
-                    showToast('Firebase Auth client initializing. Please try again.');
+                    showToast('Firebase Auth client initializing. Please wait a moment...', 'info');
                     return;
                 }
 
                 googleBtn.disabled = true;
-                googleBtn.innerHTML = '<span>Connecting to Google...</span>';
+                googleBtnText.textContent = 'Connecting to Google...';
 
                 try {
-                    const { auth, GoogleAuthProvider, signInWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-                    const provider = new GoogleAuthProvider();
-                    const result = await signInWithPopup(window.firebaseAuthClient.auth, provider);
-                    const googleUser = result.user;
+                    const res = await window.firebaseAuthClient.firebaseSignInWithGoogle();
 
-                    // Validate Google User against users and invited_members
-                    const idToken = await googleUser.getIdToken();
-                    const data = await requestAuthApi('/api/v1/auth/google-validate', {
-                        email: googleUser.email,
-                        name: googleUser.displayName || googleUser.email.split('@')[0],
-                        idToken,
-                        role
-                    });
-
-                    if (!data.success) {
-                        showToast(data.error || 'Not invited. Please contact admin or use invited email.');
-                        googleBtn.disabled = false;
-                        googleBtn.innerHTML = `
-                            <svg class="google-icon-svg" viewBox="0 0 24 24">
-                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                            </svg>
-                            <span>Continue with Google</span>`;
+                    if (res && res.redirecting) {
+                        showToast('Redirecting to Google Sign-In...', 'info');
                         return;
                     }
 
-                    // Success: save token and redirect
-                    localStorage.setItem('life_pms_token', data.data.token);
-                    localStorage.setItem('life_pms_user', JSON.stringify(data.data.user));
-                    showToast('Authenticated via Google. Redirecting...', true);
+                    if (!res || !res.success) {
+                        showToast(res?.error || 'Google Sign-In was cancelled or failed.');
+                        googleBtn.disabled = false;
+                        googleBtnText.textContent = 'Continue with Google';
+                        return;
+                    }
+
+                    // Extract user and token from backend exchange or client-side verified credential
+                    const data = res.backendResult?.data || res.backendResult;
+                    let user = data?.user;
+                    let token = data?.token;
+
+                    if (!user && res.credential?.user) {
+                        const cleanEmail = (res.credential.user.email || '').toLowerCase().trim();
+                        let role = inviteRole || (res.backendResult?.data?.role) || 'member';
+                        if (cleanEmail === 'webmaskadevelopement@gmail.com') role = 'admin';
+                        else if (cleanEmail === 'backend.webmaska@gmail.com') role = 'manager';
+
+                        user = {
+                            id: res.credential.user.uid,
+                            email: cleanEmail,
+                            name: res.credential.user.displayName || inviteName || cleanEmail.split('@')[0],
+                            role: role,
+                            department: 'Team',
+                            status: 'active'
+                        };
+                        token = await res.credential.user.getIdToken();
+                    }
+
+                    if (!token || !user) {
+                        showToast(data?.error || 'Server failed to exchange authentication token.');
+                        googleBtn.disabled = false;
+                        googleBtnText.textContent = 'Continue with Google';
+                        return;
+                    }
+
+                    // Success: save token & profile in localStorage
+                    localStorage.setItem('life_pms_token', token);
+                    localStorage.setItem('life_pms_user', JSON.stringify(user));
+                    showToast(`Welcome back, ${user.name}! Redirecting...`, 'success');
 
                     setTimeout(() => {
                         window.location.href = getRedirectUrl();
-                    }, 400);
+                    }, 350);
 
                 } catch (err) {
                     showToast(err.message || 'Google Sign-In failed.');
                     googleBtn.disabled = false;
-                    googleBtn.innerHTML = `
-                        <svg class="google-icon-svg" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                        </svg>
-                        <span>Continue with Google</span>`;
+                    googleBtnText.textContent = 'Continue with Google';
                 }
             });
         });

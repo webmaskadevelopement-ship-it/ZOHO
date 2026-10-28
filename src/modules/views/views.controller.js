@@ -46,6 +46,47 @@ router.post('/public-share', (req, res, next) => {
     }
 });
 
+// Share Public View Link via Email
+router.post('/public-share/email', async (req, res, next) => {
+    try {
+        const { shareToken, email } = req.body;
+        if (!email) return res.status(400).json({ success: false, error: 'Recipient email is required.' });
+        if (!shareToken) return res.status(400).json({ success: false, error: 'shareToken is required.' });
+
+        const cleanEmail = email.toLowerCase().trim();
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(cleanEmail)) {
+            return res.status(400).json({ success: false, error: 'Please enter a valid recipient email format.' });
+        }
+
+        const db = require('../../db/database');
+        const share = db.queryOne('SELECT * FROM public_shares WHERE share_token = ? AND is_active = 1', [shareToken]);
+        if (!share) return res.status(404).json({ success: false, error: 'Share link not found or expired.' });
+
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const viewUrl = `${baseUrl}/api/v1/views/public-share/${shareToken}`;
+
+        const EmailService = require('../../services/emailService');
+        await EmailService.sendMail({
+            to: cleanEmail,
+            subject: `Shared ${share.view_type.toUpperCase()} View on Life PMS`,
+            text: `A read-only ${share.view_type} view has been shared with you: ${viewUrl}`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #0F172A; color: #F8FAFC; border-radius: 8px;">
+                    <h2 style="color: #38BDF8; margin-top: 0;">Shared ${share.view_type.toUpperCase()} View</h2>
+                    <p>A read-only ${share.view_type} view has been shared with you on Life PMS.</p>
+                    <p style="margin: 24px 0;"><a href="${viewUrl}" style="display:inline-block; padding:12px 24px; background:#0284C7; color:#fff; text-decoration:none; border-radius:6px; font-weight:600;">Open ${share.view_type.toUpperCase()} View</a></p>
+                    <p style="font-size: 12px; color: #94A3B8;">Link: ${viewUrl}</p>
+                </div>
+            `
+        });
+
+        res.json({ success: true, message: `View successfully sent to ${cleanEmail}.` });
+    } catch (err) {
+        next(err);
+    }
+});
+
 // Sheet Grid Tree
 router.get('/sheet/:projectId', (req, res, next) => {
     try {

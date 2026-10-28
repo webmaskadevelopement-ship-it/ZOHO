@@ -31,7 +31,32 @@ const WorkerRunner = require('./services/workers/workerRunner');
 const app = express();
 
 // Global Middlewares
-app.use(cors());
+app.set('trust proxy', 1);
+
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+if (allowedOrigins.length > 0) {
+    app.use(cors({
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+                return callback(null, true);
+            }
+            return callback(new Error(`CORS blocked for origin: ${origin}`));
+        },
+        credentials: true
+    }));
+} else {
+    app.use(cors());
+}
+app.use((req, res, next) => {
+    if (!req.url.startsWith('/favicon') && !req.url.endsWith('.css') && !req.url.endsWith('.js')) {
+        console.log(`[HTTP] ${req.method} ${req.url}`);
+    }
+    next();
+});
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -45,7 +70,7 @@ app.get('/login', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get(['/health', '/api/health'], (req, res) => {
     res.json({
         status: 'UP',
         service: 'Life Project Management System Backend (Zoho Projects Alternative)',
@@ -54,8 +79,9 @@ app.get('/health', (req, res) => {
     });
 });
 
-// API Routes (v1)
+// API Routes (v1 & aliases)
 app.use('/api/v1/auth', authController);
+app.use('/api/auth', authController);
 app.use('/api/v1/portals', portalsController);
 app.use('/api/v1/teams', teamsController);
 app.use('/api/v1/roles', rolesController);
@@ -84,11 +110,11 @@ app.post('/api/v1/workers/trigger', (req, res) => {
 });
 
 // SPA Fallback for client-side navigation (prevents 404 on direct URL navigation and page refresh)
-app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.includes('.')) {
-        return next();
+app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.includes('.')) {
+        return res.sendFile(path.join(__dirname, 'public', 'index.html'));
     }
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    next();
 });
 
 // Global Error Handler

@@ -12,6 +12,14 @@
         "function": "api"
       },
       {
+        "source": "/login",
+        "destination": "/login.html"
+      },
+      {
+        "source": "/login/**",
+        "destination": "/login.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

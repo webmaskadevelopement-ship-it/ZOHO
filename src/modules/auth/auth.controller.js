@@ -48,6 +48,25 @@ router.post('/firebase-login', async (req, res, next) => {
     }
 });
 
+// Canonical Google Login Endpoint (supports Bearer token header or body.idToken)
+router.post('/google-login', async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        let idToken = req.body.idToken;
+        if (!idToken && authHeader && authHeader.startsWith('Bearer ')) {
+            idToken = authHeader.split(' ')[1];
+        }
+        if (!idToken) {
+            return res.status(401).json({ success: false, error: 'Firebase Google ID token is required.' });
+        }
+        const FirebaseAuthService = require('../../services/firebaseAuthService');
+        const result = await FirebaseAuthService.verifyFirebaseToken(idToken, req.body);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(401).json({ success: false, error: err.message });
+    }
+});
+
 // Login Validation: Email whitelist check (users or invited_members) + Name matching
 router.post('/validate-login', async (req, res, next) => {
     try {

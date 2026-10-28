@@ -70,7 +70,7 @@ async function runTests() {
         body: JSON.stringify({
             entityType: 'portal_chat',
             entityId: 'proj-ai-training',
-            content: '[Alex Chen (Admin)]: Hello team, live chat is active!'
+            content: '[Nikhil Kaushik (Admin)]: Hello team, live chat is active!'
         })
     });
     const chatMsgData = await chatMsgRes.json();

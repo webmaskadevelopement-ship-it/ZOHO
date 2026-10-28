@@ -316,7 +316,7 @@ const apiApp = express();
 apiApp.use(cors({ origin: true }));
 apiApp.use(express.json());
 
-apiApp.get('/health', (req, res) => {
+apiApp.get(['/health', '/api/health'], (req, res) => {
     res.json({
         status: 'UP',
         cloudProvider: 'Google Cloud Platform (Firebase 2nd Gen)',
@@ -352,6 +352,14 @@ apiApp.get('/views/sheet/:portalId/:projectId', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+// Mount full Life PMS REST Express App
+try {
+    const mainApp = require('../../src/app');
+    apiApp.use(mainApp);
+} catch (e) {
+    console.info('[Functions API Gateway] Main app auto-mount notice:', e.message);
+}
 
 // Export HTTPS Cloud Function API
 exports.api = onRequest(apiApp);

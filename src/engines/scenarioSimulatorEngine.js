@@ -73,13 +73,30 @@ class ScenarioSimulatorEngine {
         }
 
         // Format baseline tasks
-        const baselineTasks = rawTasks.map(t => ({
-            ...t,
-            predecessors: JSON.parse(t.predecessors || '[]'),
-            successorIds: JSON.parse(t.successor_ids || '[]'),
-            ownerIds: JSON.parse(t.owner_ids || '[]'),
-            duration: JSON.parse(t.duration || '{"value":1,"type":"days"}')
-        }));
+        const baselineTasks = rawTasks.map(t => {
+            let parsedDur = { value: 1, type: 'days' };
+            try {
+                const parsed = JSON.parse(t.duration || '{"value":1,"type":"days"}');
+                if (typeof parsed === 'number') {
+                    parsedDur = { value: parsed, type: 'days' };
+                } else if (typeof parsed === 'string') {
+                    parsedDur = { value: parseInt(parsed, 10) || 1, type: 'days' };
+                } else if (typeof parsed === 'object' && parsed !== null) {
+                    parsedDur = { value: Number(parsed.value) || 1, type: parsed.type || 'days' };
+                }
+            } catch {
+                const num = parseInt(t.duration, 10);
+                parsedDur = { value: isNaN(num) ? 1 : num, type: 'days' };
+            }
+
+            return {
+                ...t,
+                predecessors: JSON.parse(t.predecessors || '[]'),
+                successorIds: JSON.parse(t.successor_ids || '[]'),
+                ownerIds: JSON.parse(t.owner_ids || '[]'),
+                duration: parsedDur
+            };
+        });
 
         // Compute baseline Critical Path
         const baselineCpm = CriticalPathEngine.calculate(baselineTasks);
@@ -128,6 +145,9 @@ class ScenarioSimulatorEngine {
 
             if (delayToAdd > 0 && t.end_date) {
                 t.end_date = addDays(t.end_date, delayToAdd);
+                if (!t.duration || typeof t.duration !== 'object') {
+                    t.duration = { value: 1, type: 'days' };
+                }
                 t.duration.value = Math.max(1, (t.duration.value || 1) + delayToAdd);
             }
         }

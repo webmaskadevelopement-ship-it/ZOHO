@@ -319,23 +319,23 @@ class CollaborationService {
                 {
                     type: 'task_assigned',
                     title: 'New Task Assigned',
-                    message: 'Sarah Jenkins assigned you to "Stitch AI for Website Code"',
+                    message: 'Assigned to "Higgsfield Plugin API" under AI Training',
                     linkUrl: '#tasks',
                     isRead: 0,
                     minutesAgo: 10
                 },
                 {
                     type: 'sla_warning',
-                    title: 'SLA Escalation Warning',
-                    message: 'Critical Bug ISS-101 has 1h 45m remaining before SLA breach',
-                    linkUrl: '#issues',
+                    title: 'SLA Milestone Check',
+                    message: 'Milestone "Implementation" under TAG : Social Media is on track',
+                    linkUrl: '#phases',
                     isRead: 0,
                     minutesAgo: 35
                 },
                 {
                     type: 'mention',
                     title: 'New Comment Mention',
-                    message: 'Quinn Adams mentioned @you in task AE1-T42: "Please review validation logic."',
+                    message: 'Nikhil Kaushik commented on task: "Please verify automation workflow."',
                     linkUrl: '#tasks',
                     isRead: 0,
                     minutesAgo: 60
@@ -343,7 +343,7 @@ class CollaborationService {
                 {
                     type: 'mention',
                     title: 'Design Blueprint Mention',
-                    message: 'Ritika Sharma mentioned @you on Architecture Diagram asset',
+                    message: 'Ritika Sharma mentioned you on Project Architecture asset',
                     linkUrl: '#documents',
                     isRead: 1,
                     minutesAgo: 180
@@ -351,7 +351,7 @@ class CollaborationService {
                 {
                     type: 'timesheet_approved',
                     title: 'Timesheet Approved',
-                    message: 'Your 38.0h timesheet for week 43 was approved by Alex Chen',
+                    message: 'Your weekly timesheet was approved by Administrator',
                     linkUrl: '#finance',
                     isRead: 1,
                     minutesAgo: 240

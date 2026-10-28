@@ -33,11 +33,11 @@ async function seedFirestore() {
 
     // 2. Members with Custom Claims mapping
     const members = [
-        { id: 'user-admin', role: 'admin', name: 'Alex Director' },
-        { id: 'user-manager', role: 'manager', name: 'Sarah Jenkins' },
-        { id: 'user-dev', role: 'employee', name: 'Devon Vance' },
-        { id: 'user-qa', role: 'employee', name: 'Quinn Adams' },
-        { id: 'user-client', role: 'client', name: 'Chloe Stakeholder' }
+        { id: 'd60fc0c9-63f9-4f36-8430-d0cf30b892ac', role: 'admin', name: 'Nikhil Kaushik' },
+        { id: '0e4352f0-b919-449a-b68a-2091efa145d4', role: 'manager', name: 'Tushar' },
+        { id: 'fd6a7c35-078a-4c87-90fd-71108695d242', role: 'employee', name: 'Ritika Sharma' },
+        { id: '32f96257-f17e-4036-a9bc-f678488c1e3a', role: 'employee', name: 'Varun Vashisth' },
+        { id: 'dcdd64f9-263e-49ce-8fec-53077812ee50', role: 'client', name: 'Client Test' }
     ];
 
     for (const m of members) {

@@ -44,12 +44,12 @@ router.get('/', (req, res, next) => {
 
 router.post('/', requireRole(['admin', 'manager']), (req, res, next) => {
     try {
-        const { name, keyPrefix, projectGroupId, description, startDate, endDate, isPublic, budgetConfig } = req.body;
+        const { name, keyPrefix, ownerId, projectGroupId, description, startDate, endDate, isPublic, isStrictSchedule, isRollupProject, budgetConfig } = req.body;
         if (!name) return res.status(400).json({ success: false, error: 'Project name is required.' });
 
         const project = ProjectsService.createProject({
             portalId: req.portalId,
-            ownerId: req.user.id,
+            ownerId: ownerId || req.user.id,
             name,
             keyPrefix,
             projectGroupId,
@@ -57,6 +57,8 @@ router.post('/', requireRole(['admin', 'manager']), (req, res, next) => {
             startDate,
             endDate,
             isPublic: isPublic !== undefined ? isPublic : 1,
+            isStrictSchedule: isStrictSchedule ? 1 : 0,
+            isRollupProject: isRollupProject ? 1 : 0,
             budgetConfig
         });
         res.status(201).json({ success: true, data: project });
@@ -80,6 +82,54 @@ router.put('/:id', requireRole(['admin', 'manager']), (req, res, next) => {
         res.json({ success: true, data: project });
     } catch (err) {
         next(err);
+    }
+});
+
+// List Project Members
+router.get('/:id/members', (req, res, next) => {
+    try {
+        const members = ProjectsService.getProjectMembers(req.portalId, req.params.id);
+        res.json({ success: true, data: members });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Share Project via Email / Add Project Member (Requires Admin, Manager, or Project Owner)
+router.post('/:id/share', async (req, res, next) => {
+    try {
+        const { email, role } = req.body;
+        if (!email) {
+            return res.status(400).json({ success: false, error: 'Recipient email is required.' });
+        }
+
+        const project = ProjectsService.getProjectById(req.portalId, req.params.id);
+        if (!project) {
+            return res.status(404).json({ success: false, error: 'Project not found.' });
+        }
+
+        // Authorization Guard: Only project owners, managers, or admins can share
+        const isOwner = project.owner_id === req.user?.id;
+        const isAdminOrManager = ['admin', 'manager'].includes(req.user?.role);
+        if (!isAdminOrManager && !isOwner) {
+            return res.status(403).json({
+                success: false,
+                error: 'Forbidden: Only project owners, managers, or administrators can share projects.'
+            });
+        }
+
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const result = await ProjectsService.shareProject(req.portalId, req.params.id, {
+            email,
+            role: role || 'member',
+            inviterId: req.user?.id,
+            inviterName: req.user?.name || 'Administrator',
+            inviterEmail: req.user?.email,
+            baseUrl
+        });
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message });
     }
 });
 

@@ -12,6 +12,7 @@
 <body>
     <div id="app" class="app-container">
         <!-- TOP NAVIGATION BAR (Exact Zoho Projects & Linear Style) -->
+        <!-- TOP NAVIGATION BAR (Exact Zoho Projects Style) -->
         <header class="navbar zoho-top-navbar">
             <div class="nav-left-group">
                 <!-- Zoho Color Logo & Projects Switcher Dropdown -->
@@ -43,50 +44,47 @@
 
                 <div class="nav-vertical-divider"></div>
 
-                <!-- Active Project Identifier -->
-                <div class="active-project-tag">
+                <!-- Active Project Identifier / Context -->
+                <div class="active-project-tag" id="navbarActiveProjectTag">
                     <span class="project-title-text" id="navbarCurrentProjectName">WE-11 AI Training</span>
                     <button type="button" class="project-meta-icon" id="btnProjectOptions" title="Project Options">•••</button>
-                    <button type="button" class="project-meta-icon" id="btnPublicShareLink" title="Public Share & iCal Feed">
+                    <button type="button" class="project-meta-icon" id="btnPublicShareLink" title="Share Project & Email Invitations">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     </button>
                 </div>
 
-                <!-- TOP BAR MODULE NAVIGATION TABS (54 Screens Hub) -->
+                <!-- TOP BAR MODULE NAVIGATION TABS (Project Scope Hub) -->
                 <nav class="top-nav-tabs" id="topNavTabs">
                     <button type="button" class="top-tab-item active" data-view="home">Dashboard</button>
                     <button type="button" class="top-tab-item" data-view="tasks">Tasks</button>
                     <button type="button" class="top-tab-item" data-view="issues">Issues</button>
                     <button type="button" class="top-tab-item" data-view="phases">Phases</button>
-                    <button type="button" class="top-tab-item" data-view="finance">Timesheets & Finance</button>
+                    <button type="button" class="top-tab-item" data-view="finance">Timesheets</button>
                     <button type="button" class="top-tab-item" data-view="documents">Documents</button>
-                    <button type="button" class="top-tab-item" data-view="team">Team & Roles</button>
+                    <button type="button" class="top-tab-item" data-view="team">Users</button>
                     <button type="button" class="top-tab-item" data-view="reports">Reports</button>
                     <button type="button" class="top-tab-item" data-view="automation">Automation</button>
-                    <button type="button" class="top-tab-item" data-view="creative">AI & Labs</button>
                 </nav>
             </div>
 
-            <!-- Top Right Action Controls -->
+            <!-- Top Right Action Controls (Matching Zoho Projects Screenshot 1 & 2) -->
             <div class="nav-right-group">
-                <!-- Quick Create + -->
-                <button type="button" class="icon-control-btn" id="btnHeaderAddTask" title="Quick Add Task (Hotkey: C)">
+                <!-- Quick Create + in box -->
+                <button type="button" class="icon-control-btn" id="btnHeaderAddTask" title="Quick Add Task">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                 </button>
 
-                <!-- Global Command Palette Search (Cmd+K / Ctrl+K) -->
-                <button type="button" class="cmd-k-search-btn" id="btnTriggerCommandPalette" title="Search Everything (Ctrl+K)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <span class="cmd-k-text">Search...</span>
-                    <kbd class="cmd-k-kbd">Ctrl K</kbd>
+                <!-- Search (Magnifier) -->
+                <button type="button" class="icon-control-btn" id="btnTriggerCommandPalette" title="Search Everything (Ctrl+K)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </button>
 
-                <!-- Notification Bell with Count Badge -->
+                <!-- Notification Bell with Count Badge 62 -->
                 <div class="notification-bell-wrap" id="btnToggleNotifications" title="Notifications">
                     <button type="button" class="icon-control-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                     </button>
-                    <span class="bell-red-badge" id="navbarNotifBadge">4</span>
+                    <span class="bell-red-badge" id="navbarNotifBadge">62</span>
                 </div>
 
                 <!-- Live Stopwatch -->
@@ -96,21 +94,26 @@
                     <button class="stopwatch-btn" id="btnStopwatchToggle" title="Start/Pause Stopwatch">▶</button>
                 </div>
 
+                <!-- Settings Gear -->
+                <button type="button" class="icon-control-btn" id="btnHeaderSettings" title="Workspace Settings">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+
                 <!-- Single User Profile Avatar & Dropdown -->
                 <div class="user-profile-wrapper" id="userProfileWrapper">
                     <button type="button" class="avatar-circle-btn" id="userAvatarBtn" title="View Profile">
-                        <span class="avatar-circle" id="userAvatar">NK</span>
+                        <span class="avatar-circle" id="userAvatar">U</span>
                     </button>
                     
                     <div class="user-profile-dropdown" id="userProfileDropdown" style="display: none;">
                         <div class="profile-card-header">
-                            <div class="profile-card-avatar" id="dropdownAvatarLarge">NK</div>
+                            <div class="profile-card-avatar" id="dropdownAvatarLarge">U</div>
                             <div class="profile-card-details">
-                                <div class="profile-card-name" id="profileDropdownName">Nikhil Kaushik</div>
+                                <div class="profile-card-name" id="profileDropdownName">User</div>
                                 <div class="profile-card-position-wrap">
-                                    <span class="profile-card-role-badge" id="profileDropdownRole">Technical Project Lead</span>
+                                    <span class="profile-card-role-badge" id="profileDropdownRole">Administrator</span>
                                 </div>
-                                <div class="profile-card-email" id="profileDropdownEmail">nikhil@lifepms.com</div>
+                                <div class="profile-card-email" id="profileDropdownEmail"></div>
                             </div>
                         </div>
                         <div class="profile-card-divider"></div>
@@ -120,71 +123,118 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- 9-Dots App Launcher -->
+                <button type="button" class="icon-control-btn" id="btnAppLauncher" title="Zoho Apps Launcher">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
+                </button>
             </div>
         </header>
 
         <!-- MAIN WORKSPACE LAYOUT -->
         <div class="workspace-body">
-            <!-- Left Sidebar Navigation -->
-            <aside class="sidebar">
+            <!-- Left Sidebar Navigation (Matching Zoho Projects Screenshot 1) -->
+            <aside class="sidebar" id="mainSidebar">
+                <!-- Primary Sidebar Navigation Menu -->
                 <nav class="sidebar-main-nav">
-                    <a href="#" class="sidebar-item active" data-view="home">
+                    <a href="#home" class="sidebar-item active" data-view="home" id="sideNavHome">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                         <span>Home</span>
                     </a>
-                    <a href="#" class="sidebar-item" data-view="tasks">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+                    <a href="#reports" class="sidebar-item" data-view="reports" id="sideNavReports">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        <span>Reports</span>
+                    </a>
+                    <a href="#projects" class="sidebar-item" data-view="projects" id="sideNavProjects">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                        <span style="flex:1;">Projects</span>
+                        <span class="sidebar-item-dots" title="Project views">•••</span>
+                    </a>
+                    <a href="#team" class="sidebar-item" data-view="team" id="sideNavUsers">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        <span>Users</span>
+                    </a>
+                    <a href="#documents" class="sidebar-item" data-view="documents" id="sideNavCollaboration">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>Collaboration</span>
+                    </a>
+                    <a href="#finance" class="sidebar-item" data-view="finance" id="sideNavApprovals">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <span>My Approvals</span>
+                    </a>
+                </nav>
+
+                <!-- Overview Section -->
+                <div class="sidebar-sub-heading">
+                    <div class="sub-heading-left">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        <span>Overview</span>
+                    </div>
+                    <div class="sub-heading-right-icons">
+                        <button type="button" class="sub-heading-icon-btn" title="Search Overview">🔍</button>
+                        <span class="sub-heading-icon-sep">|</span>
+                        <button type="button" class="sub-heading-icon-btn" id="btnOverviewQuickAdd" title="Add Item">+</button>
+                    </div>
+                </div>
+                <nav class="sidebar-sub-nav">
+                    <a href="#tasks" class="sidebar-item" data-view="tasks">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
                         <span>Tasks</span>
                     </a>
-                    <a href="#" class="sidebar-item" data-view="issues">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <a href="#issues" class="sidebar-item" data-view="issues">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         <span>Issues</span>
                     </a>
-                    <a href="#" class="sidebar-item" data-view="phases">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                        <span>Milestones</span>
+                    <a href="#phases" class="sidebar-item" data-view="phases">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                        <span>Phases</span>
                     </a>
-                    <a href="#" class="sidebar-item" data-view="finance">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <span>Timesheets & EVM</span>
+                    <a href="#finance" class="sidebar-item" data-view="finance">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>Time Logs</span>
                     </a>
-                    <a href="#" class="sidebar-item" data-view="documents">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                        <span>Documents</span>
-                    </a>
-                    <a href="#" class="sidebar-item" data-view="team">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        <span>Team & Roles</span>
-                    </a>
-                    <a href="#" class="sidebar-item" data-view="reports">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                        <span>Reports & BI</span>
-                    </a>
-                    <a href="#" class="sidebar-item" data-view="automation">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        <span>Automation</span>
-                    </a>
-                    <a href="#" class="sidebar-item" data-view="creative">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                        <span>AI & Labs</span>
+                    <a href="#finance" class="sidebar-item" data-view="finance">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <span>Timesheets</span>
                     </a>
                 </nav>
 
-                <div class="sidebar-section-header">
-                    <span>Active Projects</span>
+                <!-- Recent Projects Section -->
+                <div class="sidebar-sub-heading">
+                    <div class="sub-heading-left">
+                        <span>Recent Projects</span>
+                    </div>
+                    <div class="sub-heading-right-icons">
+                        <button type="button" class="sub-heading-icon-btn" title="Sort Projects">⇄</button>
+                        <span class="sub-heading-icon-sep">|</span>
+                        <button type="button" class="sub-heading-icon-btn" title="Search Projects">🔍</button>
+                    </div>
                 </div>
                 <nav class="sidebar-projects-nav" id="sidebarRecentProjects">
-                    <!-- Populated dynamically -->
+                    <!-- Populated dynamically with genuine user projects -->
                 </nav>
 
-                <div class="sidebar-bottom-actions">
-                    <button class="btn-sidebar-invite" id="btnInviteUsers">
+                <!-- Sidebar Invite Action Button -->
+                <div class="sidebar-invite-wrap">
+                    <button type="button" class="btn-sidebar-invite-zoho" id="btnInviteUsers">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                        <span>Invite Member</span>
+                        <span>Invite Users</span>
                     </button>
-                    <button class="btn-sidebar-logout" id="btnSidebarLogout" title="Sign Out">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                        <span>Sign Out</span>
+                </div>
+
+                <!-- Bottom Mini Dock (My Pins, Chats, Contacts) -->
+                <div class="sidebar-mini-dock">
+                    <button type="button" class="dock-item" id="btnDockPins" title="My Pins">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span>My Pins</span>
+                    </button>
+                    <button type="button" class="dock-item" id="btnDockChats" title="Chats">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>Chats</span>
+                    </button>
+                    <button type="button" class="dock-item" id="btnDockContacts" title="Contacts">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        <span>Contacts</span>
                     </button>
                 </div>
             </aside>
@@ -317,7 +367,104 @@
                     </div>
                 </div>
 
-                <!-- VIEW 2: TASKS ENGINE (List Sheet, Kanban, Gantt, Calendar, Matrix) -->
+                <!-- VIEW 2: ALL PROJECTS TABLE VIEW (Exact Zoho Projects Screenshot 2) -->
+                <div id="view-all-projects" class="viewport-panel">
+                    <div class="projects-page-header">
+                        <div class="projects-header-left">
+                            <h2 class="projects-main-title">Projects</h2>
+                            <div class="projects-scope-tabs">
+                                <button type="button" class="proj-scope-tab active" data-proj-scope="active">Active Projects</button>
+                                <button type="button" class="proj-scope-tab" data-proj-scope="public">Public Projects</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Toolbar with Actions & Controls -->
+                    <div class="projects-sub-toolbar">
+                        <div class="projects-sub-left">
+                            <div class="dropdown-scope-wrap">
+                                <button type="button" class="btn-scope-dropdown" id="btnProjectsScopeDropdown">
+                                    <span id="projectsScopeLabel">All Projects</span>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="projects-sub-right">
+                            <div class="view-switch-btn-group">
+                                <button type="button" class="btn-subbar-control" title="List View">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                    <span>List ▾</span>
+                                </button>
+                            </div>
+                            <!-- Primary Blue "+ New Project" Button (Matching Screenshot 2 & Video) -->
+                            <button type="button" class="btn-zoho-new-project" id="btnNewProjectAllView">
+                                <span>New Project</span>
+                            </button>
+                            <button type="button" class="btn-subbar-icon-control" id="btnFilterProjects" title="Filter Projects">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            </button>
+                            <button type="button" class="btn-subbar-icon-control" title="More Options">•••</button>
+                        </div>
+                    </div>
+
+                    <!-- Table Container -->
+                    <div class="projects-table-container">
+                        <table class="zoho-projects-data-table" id="allProjectsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px; text-align: center;">
+                                        <input type="checkbox" id="selectAllProjectsChk">
+                                    </th>
+                                    <th style="width: 100px;">
+                                        <div class="th-content">
+                                            <span>ID</span>
+                                            <span class="sort-arrows">⇅</span>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            <span>Project Name</span>
+                                            <span class="sort-arrows">⇅</span>
+                                        </div>
+                                    </th>
+                                    <th style="width: 75px; text-align: right;">%</th>
+                                    <th style="width: 190px;">
+                                        <div class="th-content">
+                                            <span style="font-size:12px; margin-right:4px;">👤</span>
+                                            <span>Owner</span>
+                                        </div>
+                                    </th>
+                                    <th style="width: 130px; text-align: center;">
+                                        <div class="th-content" style="justify-content:center;">
+                                            <span>Status</span>
+                                            <span class="sort-arrows">⇅</span>
+                                        </div>
+                                    </th>
+                                    <th style="width: 150px; text-align: center;">Tasks</th>
+                                    <th style="width: 140px; text-align: center;">Phases</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allProjectsTbody">
+                                <!-- Populated dynamically from genuine database records -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Table Footer Pagination & Total Count -->
+                    <div class="projects-table-footer">
+                        <div class="footer-count-info">
+                            <span>Total Count: </span>
+                            <span id="projectsTotalCount" style="font-weight:600;">0</span>
+                        </div>
+                        <div class="footer-pagination-controls">
+                            <button type="button" class="page-nav-btn" id="btnProjectsPrev" title="Previous Page">‹</button>
+                            <span class="page-range-text" id="projectsRangeDisplay">1-0</span>
+                            <button type="button" class="page-nav-btn" id="btnProjectsNext" title="Next Page">›</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 3: TASKS ENGINE (List Sheet, Kanban, Gantt, Calendar, Matrix) -->
                 <div id="view-project-tasks" class="viewport-panel">
                     <!-- Tasks Multi-View Sub-Toolbar -->
                     <div class="zoho-sub-toolbar">
@@ -1407,38 +1554,254 @@
                 </div>
             </div>
 
-            <!-- MODAL: CREATE PROJECT -->
+            <!-- MODAL: TEMPLATES GALLERY (Zoho Projects Video Flow 00:35-00:50) -->
+            <div id="modalTemplateGallery" class="modal-backdrop">
+                <div class="modal-dialog modal-gallery-dialog">
+                    <div class="gallery-modal-header">
+                        <div class="gallery-header-text">
+                            <h3>Templates Gallery</h3>
+                            <p>Choose from a range of predefined templates or create your own.</p>
+                        </div>
+                        <button type="button" class="btn-close-modal" data-close="modalTemplateGallery">✕</button>
+                    </div>
+
+                    <div class="gallery-search-bar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="gallerySearchInput" placeholder="Search templates">
+                    </div>
+
+                    <div class="gallery-modal-body">
+                        <!-- Left Categories Navigation -->
+                        <aside class="gallery-categories-sidebar">
+                            <button type="button" class="gallery-cat-item active" data-cat="all">All Templates</button>
+                            <button type="button" class="gallery-cat-item" data-cat="software">Software / IT</button>
+                            <button type="button" class="gallery-cat-item" data-cat="construction">Construction</button>
+                            <button type="button" class="gallery-cat-item" data-cat="pharma">Pharma</button>
+                            <button type="button" class="gallery-cat-item" data-cat="manufacturing">Manufacturing</button>
+                            <button type="button" class="gallery-cat-item" data-cat="marketing">Marketing / Sales</button>
+                        </aside>
+
+                        <!-- Right Grid of Templates -->
+                        <div class="gallery-cards-grid">
+                            <!-- Blank Project Card -->
+                            <div class="gallery-template-card blank-card selected" data-template-id="blank">
+                                <div class="template-card-icon">+</div>
+                                <h4 class="template-card-title">Blank Project</h4>
+                                <p class="template-card-desc">Create a completely customized project from scratch</p>
+                                <span class="template-selected-badge">Selected</span>
+                            </div>
+
+                            <!-- Software Development Template Card -->
+                            <div class="gallery-template-card" data-template-id="software" data-cat="software">
+                                <div class="template-badge-pill">IT & Tech</div>
+                                <h4 class="template-card-title">Software Development</h4>
+                                <p class="template-card-desc">Includes bug tracking, release cycles, task lists, and sprint milestones</p>
+                            </div>
+
+                            <!-- Agile Scrum Template Card -->
+                            <div class="gallery-template-card" data-template-id="agile" data-cat="software">
+                                <div class="template-badge-pill">Agile</div>
+                                <h4 class="template-card-title">Agile Scrum Project</h4>
+                                <p class="template-card-desc">Sprints, user stories, retrospectives, and velocity tracking</p>
+                            </div>
+
+                            <!-- Digital Marketing Campaign Card -->
+                            <div class="gallery-template-card" data-template-id="marketing" data-cat="marketing">
+                                <div class="template-badge-pill">Marketing</div>
+                                <h4 class="template-card-title">Digital Marketing Campaign</h4>
+                                <p class="template-card-desc">Content calendars, social media posts, design assets, and analytics</p>
+                            </div>
+
+                            <!-- Website Redesign Card -->
+                            <div class="gallery-template-card" data-template-id="website" data-cat="software marketing">
+                                <div class="template-badge-pill">Creative</div>
+                                <h4 class="template-card-title">Website Redesign</h4>
+                                <p class="template-card-desc">Wireframes, UI/UX prototyping, backend development, and QA testing</p>
+                            </div>
+
+                            <!-- Construction & Civil Card -->
+                            <div class="gallery-template-card" data-template-id="construction" data-cat="construction">
+                                <div class="template-badge-pill">Operations</div>
+                                <h4 class="template-card-title">Construction Management</h4>
+                                <p class="template-card-desc">Site surveys, contractor milestones, safety compliance, and permits</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gallery-modal-footer">
+                        <label class="gallery-footer-checkbox">
+                            <input type="checkbox" id="chkDoNotShowGalleryAgain">
+                            <span>Do not show this again</span>
+                        </label>
+                        <div class="gallery-footer-btns">
+                            <button type="button" class="btn btn-primary" id="btnGalleryContinue">Create Project</button>
+                            <button type="button" class="btn btn-outline" data-close="modalTemplateGallery">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: CREATE NEW PROJECT FORM (Video Flow 00:50-01:05) -->
             <div id="modalCreateProject" class="modal-backdrop">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-new-project-dialog">
                     <div class="modal-dialog-header">
-                        <h3>Create New Project</h3>
+                        <h3>New Project</h3>
                         <button type="button" class="btn-close-modal" data-close="modalCreateProject">✕</button>
                     </div>
-                    <form id="formModalCreateProject" class="modal-dialog-body">
-                        <div class="form-row">
-                            <label>Project Name *</label>
-                            <input type="text" id="createProjName" class="input-styled" required placeholder="e.g. Q4 Mobile App Redesign">
-                        </div>
+                    <form id="formModalCreateProject" class="modal-dialog-body new-project-form-body">
+                        <!-- Project Title & Key -->
                         <div class="form-grid-2col">
                             <div class="form-row">
-                                <label>Key Prefix (e.g. ZPA) *</label>
-                                <input type="text" id="createProjPrefix" class="input-styled" required maxlength="6" value="PRJ">
+                                <label>Project Title <span class="required-asterisk">*</span></label>
+                                <input type="text" id="createProjName" class="input-styled" required placeholder="Enter project name">
                             </div>
                             <div class="form-row">
-                                <label>Budget ($)</label>
-                                <input type="number" id="createProjBudget" class="input-styled" min="0" value="50000">
+                                <label>Project Key / ID Prefix <span class="required-asterisk">*</span></label>
+                                <input type="text" id="createProjPrefix" class="input-styled" required maxlength="8" value="WE-" placeholder="e.g. WE-23">
                             </div>
                         </div>
-                        <div class="form-row">
-                            <label>Template / Copy-From</label>
-                            <select id="createProjTemplate" class="input-styled">
-                                <option value="">Blank Project</option>
-                                <option value="template-saas">Verified SaaS Development Template</option>
-                            </select>
+
+                        <!-- Owner & Template -->
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Owner <span class="required-asterisk">*</span></label>
+                                <select id="createProjOwner" class="input-styled" required>
+                                    <!-- Populated dynamically with genuine users -->
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Template</label>
+                                <select id="createProjTemplate" class="input-styled">
+                                    <option value="blank">Blank Project</option>
+                                    <option value="software">Software Development</option>
+                                    <option value="agile">Agile Scrum Project</option>
+                                    <option value="marketing">Digital Marketing Campaign</option>
+                                    <option value="website">Website Redesign</option>
+                                    <option value="construction">Construction Management</option>
+                                </select>
+                            </div>
                         </div>
+
+                        <!-- Dates & Strict Schedule -->
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Start Date</label>
+                                <input type="date" id="createProjStartDate" class="input-styled">
+                            </div>
+                            <div class="form-row">
+                                <label>End Date</label>
+                                <input type="date" id="createProjEndDate" class="input-styled">
+                            </div>
+                        </div>
+                        <div class="form-checkbox-row">
+                            <label class="custom-checkbox-label">
+                                <input type="checkbox" id="createProjStrict">
+                                <span>Strict project</span>
+                            </label>
+                            <span class="field-hint-text">Tasks and milestones can only be scheduled within project dates</span>
+                        </div>
+
+                        <!-- Project Group & Business Hours -->
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Project Group</label>
+                                <select id="createProjGroup" class="input-styled">
+                                    <option value="general" selected>General</option>
+                                    <option value="internal">Internal Operations</option>
+                                    <option value="client">Client Workflows</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Business Hours</label>
+                                <select id="createProjHours" class="input-styled">
+                                    <option value="default" selected>Default Business Hours (9:00 AM - 6:00 PM)</option>
+                                    <option value="24x7">24 Hours / 7 Days</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Description with Rich Text Toolbar -->
+                        <div class="form-row">
+                            <label>Description</label>
+                            <div class="rich-editor-wrapper">
+                                <div class="rich-editor-toolbar">
+                                    <button type="button" class="toolbar-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+                                    <button type="button" class="toolbar-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+                                    <button type="button" class="toolbar-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+                                    <span class="toolbar-sep">|</span>
+                                    <button type="button" class="toolbar-btn" data-cmd="insertUnorderedList" title="Bullet List">• List</button>
+                                    <button type="button" class="toolbar-btn" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
+                                    <span class="toolbar-sep">|</span>
+                                    <button type="button" class="toolbar-btn" data-cmd="link" title="Insert Link">🔗 Link</button>
+                                </div>
+                                <textarea id="createProjDesc" class="rich-textarea" rows="3" placeholder="Add detailed project goals, deliverables, and scope..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Task Layout & Tags -->
+                        <div class="form-grid-2col">
+                            <div class="form-row">
+                                <label>Task Layout</label>
+                                <select id="createProjLayout" class="input-styled">
+                                    <option value="standard" selected>Standard Layout</option>
+                                    <option value="agile">Agile Sprint Layout</option>
+                                    <option value="custom">Custom Field Layout</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Tags</label>
+                                <input type="text" id="createProjTags" class="input-styled" placeholder="Comma separated, e.g. Social Media, Web, AI">
+                            </div>
+                        </div>
+
+                        <!-- Roll-up Checkbox -->
+                        <div class="form-checkbox-row">
+                            <label class="custom-checkbox-label">
+                                <input type="checkbox" id="createProjRollup" checked>
+                                <span>Roll-up</span>
+                            </label>
+                            <span class="field-hint-text">Calculate project percentage from tasks and milestones</span>
+                        </div>
+
+                        <!-- Customize Tabs Section -->
+                        <div class="form-row">
+                            <label style="margin-bottom:8px; display:block;">Customize Tabs</label>
+                            <div class="tabs-checkbox-grid">
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="dashboard" checked> <span>Dashboard</span></label>
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="tasks" checked> <span>Tasks</span></label>
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="phases" checked> <span>Phases / Milestones</span></label>
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="issues" checked> <span>Issues</span></label>
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="timesheets" checked> <span>Timesheets</span></label>
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="documents" checked> <span>Documents</span></label>
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="reports" checked> <span>Reports</span></label>
+                                <label class="tab-pill-checkbox"><input type="checkbox" name="projTabs" value="users" checked> <span>Users</span></label>
+                            </div>
+                        </div>
+
+                        <!-- Project Access Radio Selection -->
+                        <div class="form-row" style="margin-top:6px;">
+                            <label style="display:block; margin-bottom:8px;">Project Access <span class="required-asterisk">*</span></label>
+                            <div class="access-radio-group">
+                                <label class="access-radio-option">
+                                    <input type="radio" name="createProjAccess" value="private" checked>
+                                    <div class="radio-option-text">
+                                        <span class="radio-title">Private</span>
+                                        <span class="radio-desc">Only project users can view and access this project</span>
+                                    </div>
+                                </label>
+                                <label class="access-radio-option">
+                                    <input type="radio" name="createProjAccess" value="public">
+                                    <div class="radio-option-text">
+                                        <span class="radio-title">Public</span>
+                                        <span class="radio-desc">All portal users can view and access this project</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="modal-dialog-footer">
+                            <button type="submit" class="btn btn-primary btn-add-project" id="btnSubmitCreateProject">Add</button>
                             <button type="button" class="btn btn-outline" data-close="modalCreateProject">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Create Project</button>
                         </div>
                     </form>
                 </div>
@@ -1578,12 +1941,11 @@
                     <!-- Team presence bar -->
                     <div class="chat-presence-bar">
                         <span style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Online:</span>
-                        <div class="chat-presence-avatars">
-                            <div class="presence-avatar" title="Alex Chen (Admin)">AC</div>
-                            <div class="presence-avatar" title="Sarah Jenkins (PM)">SJ</div>
-                            <div class="presence-avatar" title="Devon Vance (Lead Dev)">DV</div>
-                            <div class="presence-avatar" title="Quinn Adams (QA)">QA</div>
-                            <div class="presence-avatar" title="Ritika Sharma (Design)">RS</div>
+                        <div class="chat-presence-avatars" id="chatPresenceAvatars">
+                            <div class="presence-avatar" title="Nikhil Kaushik (Admin)">NK</div>
+                            <div class="presence-avatar" title="Tushar (Manager)">TU</div>
+                            <div class="presence-avatar" title="Ritika Sharma (Member)">RS</div>
+                            <div class="presence-avatar" title="Varun Vashisth (Member)">VV</div>
                         </div>
                     </div>
 
@@ -1597,11 +1959,10 @@
                         <div class="chat-persona-row">
                             <span style="font-size:11px; color:var(--text-muted);">Chatting as:</span>
                             <select id="chatSenderPersona" class="chat-persona-select">
-                                <option value="Alex Chen (Admin)">Alex Chen (Admin)</option>
-                                <option value="Sarah Jenkins (PM)">Sarah Jenkins (PM)</option>
-                                <option value="Devon Vance (Dev)">Devon Vance (Dev)</option>
-                                <option value="Quinn Adams (QA)">Quinn Adams (QA)</option>
-                                <option value="Ritika Sharma (Design)">Ritika Sharma (Design)</option>
+                                <option value="Nikhil Kaushik (Admin)">Nikhil Kaushik (Admin)</option>
+                                <option value="Tushar (Manager)">Tushar (Manager)</option>
+                                <option value="Ritika Sharma (Member)">Ritika Sharma (Member)</option>
+                                <option value="Varun Vashisth (Member)">Varun Vashisth (Member)</option>
                                 <option value="Client / Visitor">Client / Visitor</option>
                             </select>
                         </div>
@@ -1762,20 +2123,52 @@
                 </div>
             </div>
 
-            <!-- MODAL: SHARE LINK -->
+            <!-- MODAL: SHARE PROJECT & EMAIL INVITATIONS (Requirement 2 & 4) -->
             <div id="modalShareLink" class="modal-backdrop">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-share-dialog">
                     <div class="modal-dialog-header">
-                        <h3>Share Project Workspace</h3>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h3>Share Project</h3>
+                            <span class="badge-subtle" id="shareModalProjectTag">Active</span>
+                        </div>
                         <button type="button" class="btn-close-modal" data-close="modalShareLink">✕</button>
                     </div>
-                    <div class="modal-dialog-body">
-                        <div style="font-size:12px; color:var(--text-secondary);">
-                            Anyone with this link can view this project dashboard and task board in client view mode:
+                    <div class="modal-dialog-body" style="gap:16px;">
+                        <!-- Email Invitation Section -->
+                        <div class="share-section-box">
+                            <h4 class="share-section-title">Invite by Email Address</h4>
+                            <p class="share-section-subtitle">Send a direct invitation email and grant project access immediately.</p>
+                            <div class="share-email-form-row">
+                                <input type="email" id="shareProjectEmailInput" class="input-styled" placeholder="Enter recipient email (e.g. webmaskadevelopement@gmail.com)" required>
+                                <select id="shareProjectRoleSelect" class="input-styled" style="width: 140px;">
+                                    <option value="member" selected>Member</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="client">Client</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                                <button type="button" class="btn btn-primary" id="btnSendProjectShareEmail">Share</button>
+                            </div>
+                            <div id="shareEmailStatusMsg" class="share-status-message" style="display:none;"></div>
                         </div>
-                        <div style="display:flex; gap:6px; margin-top:8px;">
-                            <input type="text" id="shareLinkUrlInput" class="input-styled" readonly style="font-family:var(--font-mono); font-size:11.5px;">
-                            <button type="button" class="btn btn-primary" id="btnCopyShareLink">Copy</button>
+
+                        <!-- Direct Workspace Link -->
+                        <div class="share-section-box">
+                            <h4 class="share-section-title">Project Workspace Link</h4>
+                            <div style="display:flex; gap:6px; margin-top:6px;">
+                                <input type="text" id="shareLinkUrlInput" class="input-styled" readonly style="font-family:var(--font-mono); font-size:11.5px;">
+                                <button type="button" class="btn btn-secondary" id="btnCopyShareLink">Copy Link</button>
+                            </div>
+                        </div>
+
+                        <!-- Existing Members List -->
+                        <div class="share-section-box">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <h4 class="share-section-title">People with Access</h4>
+                                <span class="badge-subtle" id="shareMembersCount">0 members</span>
+                            </div>
+                            <div class="share-members-list" id="shareProjectMembersList">
+                                <!-- Populated dynamically from genuine database users -->
+                            </div>
                         </div>
                     </div>
                     <div class="modal-dialog-footer">

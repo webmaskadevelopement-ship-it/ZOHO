@@ -33,14 +33,14 @@ async function runVerification() {
 
     // Step 0: Login as Admin
     console.log('▶ Step 0: Authenticating as Admin...');
-    const loginRes = await request('/api/v1/auth/login', {
+    const loginRes = await request('/api/v1/auth/google-login', {
         method: 'POST',
-        body: JSON.stringify({ email: 'nikhil@lifepms.com', password: 'Password123!' })
+        body: JSON.stringify({ email: 'webmaskadevelopement@gmail.com', displayName: 'Webmaska Admin', idToken: 'test-google-token' })
     });
     assert.strictEqual(loginRes.status, 200, 'Login failed');
     assert.strictEqual(loginRes.body.success, true);
     token = loginRes.body.data.token;
-    console.log('  ✔ Authenticated successfully as Nikhil Kaushik (Admin)\n');
+    console.log('  ✔ Authenticated successfully as Webmaska Admin (Admin)\n');
 
     // Test 1: Task List & Task Validation + Updates
     console.log('▶ Test 1: Task List and Task Name Clickability & Validation');

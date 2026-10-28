@@ -7,27 +7,93 @@ const portalScope = require('../../middleware/portalScope');
 const { requireRole } = require('../../middleware/rbac');
 const FirebaseSyncService = require('../../services/firebaseSyncService');
 
-// Public invitation verification route
-router.get('/invite/accept', (req, res) => {
+// Public invitation verification route (handles token, code, or email lookup with expiration & status checks)
+const verifyInvitationHandler = (req, res) => {
     try {
         const token = req.query.token || req.query.code;
-        if (!token) {
-            return res.status(400).json({ success: false, error: 'Invitation token is required.' });
+        const email = req.query.email || req.query.inviteEmail;
+
+        if (!token && !email) {
+            return res.status(400).json({ success: false, valid: false, error: 'Invitation token or email is required.' });
         }
-        const member = db.queryOne('SELECT * FROM invited_members WHERE id = ?', [token]);
+
+        let member = null;
+        if (token) {
+            const crypto = require('crypto');
+            const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+            member = db.queryOne('SELECT * FROM invited_members WHERE token_hash = ? OR token = ? OR id = ?', [tokenHash, token, token]);
+        }
+        if (!member && email) {
+            member = db.queryOne('SELECT * FROM invited_members WHERE LOWER(email) = ?', [email.toLowerCase().trim()]);
+        }
+
         if (!member) {
-            return res.status(404).json({ success: false, error: 'Invitation not found or expired.' });
+            return res.status(404).json({ success: false, valid: false, error: 'Invitation not found or invalid link.' });
         }
+
+        // Check if expired
+        const now = new Date();
+        if (member.expires_at && new Date(member.expires_at) < now) {
+            return res.status(410).json({
+                success: false,
+                valid: false,
+                expired: true,
+                error: 'This invitation link has expired. Please contact the administrator for a new invite.',
+                data: {
+                    email: member.email,
+                    name: member.name,
+                    expiresAt: member.expires_at
+                }
+            });
+        }
+
+        // Check if already accepted
+        if (member.status === 'accepted') {
+            return res.json({
+                success: true,
+                valid: false,
+                alreadyAccepted: true,
+                message: 'This invitation has already been accepted.',
+                data: {
+                    email: member.email,
+                    name: member.name,
+                    role: member.role,
+                    status: 'accepted',
+                    portalId: member.portal_id
+                }
+            });
+        }
+
+        // Valid pending invitation
         res.json({
             success: true,
+            valid: true,
             data: {
                 message: 'Invitation verified successfully.',
+                id: member.id,
                 email: member.email,
                 name: member.name,
                 role: member.role,
-                portalId: member.portal_id
+                status: member.status,
+                portalId: member.portal_id,
+                projectId: member.project_id || null,
+                expiresAt: member.expires_at
             }
         });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+router.get('/invite/accept', verifyInvitationHandler);
+router.get('/invite/verify', verifyInvitationHandler);
+
+// Public SMTP diagnostic status check
+router.get('/smtp-status', async (req, res) => {
+    try {
+        const EmailService = require('../../services/emailService');
+        const status = await EmailService.verifyConnection();
+        res.json({ success: true, data: status });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -41,9 +107,12 @@ router.post('/invite', optionalAuth, async (req, res, next) => {
         if (!email || !email.includes('@')) {
             return res.status(400).json({ success: false, error: 'A valid email address is required.' });
         }
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const inviterId = req.user?.id || 'user-admin';
-        const inviterName = req.user?.name || 'Admin';
+        const baseUrl = (req.body.baseUrl && typeof req.body.baseUrl === 'string' && req.body.baseUrl.startsWith('http'))
+            ? req.body.baseUrl.replace(/\/+$/, '')
+            : `${req.protocol}://${req.get('host')}`;
+        const adminUser = db.queryOne("SELECT id, name FROM users WHERE role = 'admin' LIMIT 1");
+        const inviterId = req.user?.id || adminUser?.id;
+        const inviterName = req.user?.name || adminUser?.name || 'Administrator';
 
         // 1. Deliver invitation
         const result = await PortalsService.inviteMember(portalId, {

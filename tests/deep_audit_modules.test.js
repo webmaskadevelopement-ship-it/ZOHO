@@ -1,4 +1,4 @@
-const { describe, it, before } = require('node:test');
+const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const db = require('../src/db/database');
 const RolesService = require('../src/modules/roles/roles.service');
@@ -17,12 +17,35 @@ const WorkerRunner = require('../src/services/workers/workerRunner');
 
 describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite', () => {
     let portalId = 'portal-demo-zoho';
-    let adminUserId = 'user-admin';
-    let employeeUserId = 'user-dev';
-    let projectId = 'proj-zoho-core';
+    let adminUserId;
+    let employeeUserId;
+    let projectId;
+    let sampleTaskId;
+    let sampleTargetTaskId;
 
     before(() => {
         db.getInstance();
+        const admin = db.queryOne("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        const manager = db.queryOne("SELECT id FROM users WHERE role IN ('manager', 'member', 'employee') LIMIT 1") || admin;
+        const proj = db.queryOne("SELECT id FROM projects LIMIT 1");
+
+        adminUserId = admin ? admin.id : 'user-admin';
+        employeeUserId = manager ? manager.id : 'user-dev';
+        projectId = proj ? proj.id : 'proj-ai-training';
+
+        const tasks = db.queryAll('SELECT id FROM tasks WHERE project_id = ? LIMIT 2', [projectId]);
+        sampleTaskId = tasks[0]?.id;
+        if (tasks.length >= 2) {
+            sampleTargetTaskId = tasks[1]?.id;
+        } else if (sampleTaskId) {
+            const second = TasksService.createTask(portalId, {
+                projectId,
+                name: 'AE1-T2 | Phase 2 - Deliverable Setup',
+                ownerIds: [adminUserId],
+                statusId: 'status-open'
+            });
+            sampleTargetTaskId = second.id;
+        }
     });
 
     describe('1. Roles & Permissions (Module 1, Tickets ZP-004, ZP-007)', () => {
@@ -166,12 +189,12 @@ describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite',
 
             const assigned = TagsService.assignTag(portalId, {
                 entityType: 'task',
-                entityId: 'task-zpa-1',
+                entityId: sampleTaskId || 'task-ae1-t42',
                 tagId: tag.id
             });
             assert.ok(assigned.some(t => t.id === tag.id));
 
-            const entityTags = TagsService.getEntityTags(portalId, 'task', 'task-zpa-1');
+            const entityTags = TagsService.getEntityTags(portalId, 'task', sampleTaskId || 'task-ae1-t42');
             assert.ok(entityTags.some(t => t.name === 'Urgent Fix'));
         });
     });
@@ -260,7 +283,13 @@ describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite',
     });
 
     describe('8. Task Bulk Updates, Voting, Linking & Reminders (Module 4, Tickets ZP-020, ZP-031)', () => {
-        let taskId = 'task-zpa-1';
+        let taskId;
+        let targetTaskId;
+
+        before(() => {
+            taskId = sampleTaskId;
+            targetTaskId = sampleTargetTaskId;
+        });
 
         it('should bulk update task status', () => {
             const result = TasksService.bulkUpdate(portalId, {
@@ -283,7 +312,7 @@ describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite',
         it('should create task relation links (relates_to, blocks)', () => {
             const rel = TasksService.addTaskRelation(portalId, {
                 sourceTaskId: taskId,
-                targetTaskId: 'task-zpa-2',
+                targetTaskId: targetTaskId,
                 relationType: 'blocks'
             });
             assert.ok(rel.length > 0);
@@ -435,4 +464,14 @@ describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite',
             assert.ok(search.results.length >= 0);
         });
     });
+
+    after(() => {
+        const keepTaskId = 'task-ae1-t42';
+        db.execute('DELETE FROM tasks WHERE id != ?', [keepTaskId]);
+        db.execute('DELETE FROM issues');
+        db.execute('DELETE FROM task_relations');
+        db.execute('DELETE FROM task_reminders');
+        db.execute('DELETE FROM task_votes');
+    });
 });
+

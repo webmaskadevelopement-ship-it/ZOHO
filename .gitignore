@@ -19,6 +19,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # OS and Editor files
+*.mp4
+Screen Recording*.mp4
 .DS_Store
 Thumbs.db
 .vscode/
@@ -33,3 +35,6 @@ coverage/
 .system_generated/
 *.db-wal
 *.db-shm
+# Build and config secrets
+email_config.json
+netlify/functions/email_config.json

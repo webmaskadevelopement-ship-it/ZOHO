@@ -26,6 +26,10 @@ function getDatabase(customPath) {
     db.exec('PRAGMA journal_mode = WAL;');
     db.exec('PRAGMA busy_timeout = 5000;');
 
+    if (!customPath) {
+        dbInstance = db;
+    }
+
     // Initialize schema
     const schemaPath = path.resolve(__dirname, 'schema.sql');
     if (fs.existsSync(schemaPath)) {
@@ -39,9 +43,6 @@ function getDatabase(customPath) {
         require('./seedInvites').initInvitedMembers();
     } catch (e) {}
 
-    if (!customPath) {
-        dbInstance = db;
-    }
     return db;
 }
 

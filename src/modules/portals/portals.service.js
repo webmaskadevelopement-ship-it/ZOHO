@@ -166,21 +166,44 @@ class PortalsService {
         const validRoles = ['admin', 'manager', 'employee', 'client'];
         const normalizedRole = validRoles.includes(role.toLowerCase()) ? role.toLowerCase() : 'employee';
 
+        const { resolveAuthorizedRole } = require('../../config/roles');
+        const existingUser = db.queryOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [cleanEmail]);
+        const canonicalRole = resolveAuthorizedRole(cleanEmail, existingUser ? existingUser.role : normalizedRole);
+        const inviteStatus = existingUser ? 'active' : 'pending';
+
+        const crypto = require('crypto');
         const now = new Date().toISOString();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         const existingInvite = db.queryOne('SELECT * FROM invited_members WHERE LOWER(email) = ?', [cleanEmail]);
         let inviteId = existingInvite ? existingInvite.id : uuidv4();
+        let token = existingInvite?.token || (uuidv4() + '-' + crypto.randomBytes(16).toString('hex'));
+        let tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
         if (existingInvite) {
             db.execute(
-                'UPDATE invited_members SET name = ?, role = ?, status = ?, invited_by = ?, updated_at = ? WHERE id = ?',
-                [cleanName, normalizedRole, 'pending', inviterId || 'system', now, inviteId]
+                `UPDATE invited_members 
+                 SET name = ?, role = ?, status = ?, invited_by = ?, token = ?, token_hash = ?, expires_at = ?, updated_at = ? 
+                 WHERE id = ?`,
+                [cleanName, canonicalRole, inviteStatus, inviterId || 'system', token, tokenHash, expiresAt, now, inviteId]
             );
         } else {
             db.execute(
-                `INSERT INTO invited_members (id, portal_id, email, name, role, status, invited_by, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
-                [inviteId, portalId, cleanEmail, cleanName, normalizedRole, inviterId || 'system', now, now]
+                `INSERT INTO invited_members (id, portal_id, email, name, role, status, invited_by, token, token_hash, expires_at, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [inviteId, portalId, cleanEmail, cleanName, canonicalRole, inviteStatus, inviterId || 'system', token, tokenHash, expiresAt, now, now]
             );
+        }
+
+        // Ensure user is registered in portal_members if existingUser exists
+        if (existingUser) {
+            const pm = db.queryOne('SELECT id FROM portal_members WHERE portal_id = ? AND user_id = ?', [portalId, existingUser.id]);
+            if (!pm) {
+                db.execute(
+                    `INSERT INTO portal_members (id, portal_id, user_id, role, status, created_at)
+                     VALUES (?, ?, ?, ?, 'active', ?)`,
+                    [uuidv4(), portalId, existingUser.id, canonicalRole, now]
+                );
+            }
         }
 
         // Firestore sync if connected
@@ -192,8 +215,11 @@ class PortalsService {
                     portalId,
                     email: cleanEmail,
                     name: cleanName,
-                    role: normalizedRole,
-                    status: 'pending',
+                    role: canonicalRole,
+                    status: inviteStatus,
+                    tokenHash,
+                    token,
+                    expiresAt,
                     invitedBy: inviterId || 'system',
                     updatedAt: now
                 }, { merge: true });
@@ -202,35 +228,44 @@ class PortalsService {
             console.warn('[Firestore] Sync invited member notice:', e.message);
         }
 
-        // Construct invite link
-        const inviteLink = `${baseUrl}/login?inviteEmail=${encodeURIComponent(cleanEmail)}&inviteName=${encodeURIComponent(cleanName)}&role=${encodeURIComponent(normalizedRole)}`;
+        // Construct verified invite link with token and email
+        const inviteLink = `${baseUrl}/login?token=${token}&inviteEmail=${encodeURIComponent(cleanEmail)}&inviteName=${encodeURIComponent(cleanName)}&role=${encodeURIComponent(canonicalRole)}`;
 
-        // Send Email
+        // Send Email via EmailService
         const EmailService = require('../../services/emailService');
-        const emailResult = await EmailService.sendInvitationEmail({
-            recipientEmail: cleanEmail,
-            recipientName: cleanName,
-            role: normalizedRole,
-            portalName: 'Life PMS Workspace',
-            projectName: 'WE-11 AI Training',
-            inviteLink,
-            inviterName: inviterName || 'Project Administrator'
-        });
-
-        if (!emailResult.success) {
-            throw new Error(emailResult.error || 'Failed to dispatch invitation email.');
+        let emailResult = { success: false, deliveredToInbox: false };
+        try {
+            emailResult = await EmailService.sendInvitationEmail({
+                recipientEmail: cleanEmail,
+                recipientName: cleanName,
+                role: canonicalRole,
+                portalName: 'Life PMS Workspace',
+                projectName: 'Life PMS Projects',
+                inviteLink,
+                token,
+                expiresAt,
+                inviterName: inviterName || 'Project Administrator'
+            });
+        } catch (mailErr) {
+            console.error('[EmailService] Invitation dispatch error:', mailErr.message);
+            emailResult = { success: false, deliveredToInbox: false, error: mailErr.message };
         }
 
         return {
             success: true,
             inviteId,
             invitationId: inviteId,
+            token,
+            expiresAt,
             email: cleanEmail,
             name: cleanName,
-            role: normalizedRole,
+            role: canonicalRole,
             inviteLink,
             messageId: emailResult.messageId || null,
             previewUrl: emailResult.previewUrl || null,
+            deliveredToInbox: emailResult.deliveredToInbox || false,
+            sandboxOnly: emailResult.sandboxOnly || false,
+            provider: emailResult.provider || null,
             emailDelivery: emailResult
         };
     }

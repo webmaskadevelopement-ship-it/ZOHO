@@ -1,112 +1,132 @@
 /**
- * Login Validation Logic Test Suite
- * Verifies Email Whitelist, Name Match, and Google Login Flows.
+ * Google Auth & Canonical Role Validation Test Suite
+ * Verifies Google Sign-In Role Mapping (Admin, Manager, Member),
+ * Auto-Provisioning, Database Integrity, and Elimination of Dummy Data.
  */
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const AuthValidationService = require('../functions/src/modules/auth/authValidation');
 const cloudFunctions = require('../functions/src/index');
+const db = require('../src/db/database');
+const { resolveAuthorizedRole } = require('../src/config/roles');
 
-describe('Login Validation Logic (CRITICAL)', () => {
+describe('Google Authentication & Canonical RBAC Role Mapping', () => {
 
-    describe('1. Email Whitelist & User Existence Validation', () => {
-        it('should block non-existent email with exact error message', async () => {
-            await assert.rejects(
-                async () => {
-                    await AuthValidationService.validateLogin({
-                        email: 'unregistered.random@unknown.com',
-                        name: 'Random Person',
-                        role: 'Lead'
-                    });
-                },
-                {
-                    message: 'User not found. Please contact admin or use invited email.'
-                }
-            );
+    describe('1. Canonical Role Assignment Rules', () => {
+        it('should resolve webmaskadevelopement@gmail.com strictly as admin', () => {
+            const role = resolveAuthorizedRole('webmaskadevelopement@gmail.com');
+            assert.equal(role, 'admin');
         });
 
-        it('should block when email exists but Name does not match registered name', async () => {
-            await assert.rejects(
-                async () => {
-                    await AuthValidationService.validateLogin({
-                        email: 'dev@lifepms.com',
-                        name: 'Wrong Full Name',
-                        role: 'Lead'
-                    });
-                },
-                {
-                    message: 'Name does not match the registered user for this email.'
-                }
-            );
+        it('should resolve backend.webmaska@gmail.com strictly as manager', () => {
+            const role = resolveAuthorizedRole('backend.webmaska@gmail.com');
+            assert.equal(role, 'manager');
         });
 
-        it('should succeed when email and name match case-insensitively for registered user', async () => {
-            const res = await AuthValidationService.validateLogin({
-                email: 'dev@lifepms.com',
-                name: 'devon vance', // Case-insensitive match for "Devon Vance (Lead Dev)"
-                role: 'Lead'
-            });
-
-            assert.equal(res.success, true);
-            assert.ok(res.token, 'Should generate session token');
-            assert.equal(res.user.email, 'dev@lifepms.com');
+        it('should resolve any other valid Google account as member by default', () => {
+            const role1 = resolveAuthorizedRole('newuser@gmail.com');
+            const role2 = resolveAuthorizedRole('contractor@external.org');
+            assert.equal(role1, 'member');
+            assert.equal(role2, 'member');
         });
 
-        it('should allow invited member to login and auto-provision user', async () => {
-            const res = await AuthValidationService.validateLogin({
-                email: 'jordan.lee@lifepms.com',
-                name: 'Jordan Lee',
-                role: 'Lead'
-            });
-
-            assert.equal(res.success, true);
-            assert.ok(res.token);
-            assert.equal(res.user.email, 'jordan.lee@lifepms.com');
-            assert.equal(res.user.name, 'Jordan Lee');
+        it('should preserve existing elevated DB role if previously promoted', () => {
+            const role = resolveAuthorizedRole('promoted.user@gmail.com', 'admin');
+            assert.equal(role, 'admin');
         });
     });
 
-    describe('2. Google Login Whitelist Validation', () => {
-        it('should allow existing user via Google login', async () => {
+    describe('2. Google Sign-In Flow & Auto-Provisioning (No "Not Invited" Block)', () => {
+        it('should authenticate Admin (webmaskadevelopement@gmail.com) with role admin', async () => {
             const res = await AuthValidationService.validateGoogleLogin({
-                email: 'admin@lifepms.com',
-                name: 'Alex Director'
+                email: 'webmaskadevelopement@gmail.com',
+                name: 'Primary Admin'
+            });
+
+            assert.equal(res.success, true);
+            assert.ok(res.token, 'Must return valid session JWT');
+            assert.equal(res.user.email, 'webmaskadevelopement@gmail.com');
+            assert.equal(res.user.role, 'admin');
+        });
+
+        it('should authenticate Manager (backend.webmaska@gmail.com) with role manager', async () => {
+            const res = await AuthValidationService.validateGoogleLogin({
+                email: 'backend.webmaska@gmail.com',
+                name: 'Engineering Manager'
             });
 
             assert.equal(res.success, true);
             assert.ok(res.token);
-            assert.equal(res.user.email, 'admin@lifepms.com');
+            assert.equal(res.user.email, 'backend.webmaska@gmail.com');
+            assert.equal(res.user.role, 'manager');
         });
 
-        it('should auto-provision invited member on Google login', async () => {
+        it('should allow and auto-provision new Google user as member without "Not invited" error', async () => {
+            const testEmail = `new.member.${Date.now()}@gmail.com`;
             const res = await AuthValidationService.validateGoogleLogin({
-                email: 'sam.taylor@lifepms.com',
-                name: 'Sam Taylor'
+                email: testEmail,
+                name: 'New Team Member'
             });
 
             assert.equal(res.success, true);
             assert.ok(res.token);
-            assert.equal(res.user.email, 'sam.taylor@lifepms.com');
+            assert.equal(res.user.email, testEmail);
+            assert.equal(res.user.role, 'member');
+
+            // Verify user exists in SQLite
+            const inDb = db.queryOne('SELECT email, role FROM users WHERE LOWER(email) = ?', [testEmail]);
+            assert.ok(inDb);
+            assert.equal(inDb.role, 'member');
+
+            // Clean up test entry
+            db.execute('DELETE FROM portal_members WHERE user_id = (SELECT id FROM users WHERE email = ?)', [testEmail]);
+            db.execute('DELETE FROM users WHERE email = ?', [testEmail]);
         });
 
-        it('should block uninvited new user on Google login with "Not invited" message', async () => {
+        it('should reject Google login if email is missing', async () => {
             await assert.rejects(
                 async () => {
                     await AuthValidationService.validateGoogleLogin({
-                        email: 'stranger.not.invited@gmail.com',
-                        name: 'Stranger'
+                        email: '',
+                        name: 'No Email'
                     });
                 },
                 {
-                    message: 'Not invited. Please contact admin or use invited email.'
+                    message: 'Google email is required.'
                 }
             );
         });
     });
 
-    describe('3. Firebase Functions 2nd Gen Callables Export', () => {
-        it('should export validateLogin and validateGoogleLogin', () => {
+    describe('3. Database Integrity & Zero Dummy Data Verification', () => {
+        it('should have zero dummy persona users in users table', () => {
+            const dummyUsers = db.queryAll(`
+                SELECT email FROM users
+                WHERE email LIKE '%@lifepms.com'
+                   OR email LIKE '%@acme.com'
+                   OR email LIKE '%@brandacme.com'
+                   OR email LIKE '%@example.com'
+            `);
+            assert.equal(dummyUsers.length, 0, `Expected 0 dummy users, found: ${dummyUsers.map(u => u.email).join(', ')}`);
+        });
+
+        it('should have zero dummy sample projects in projects table', () => {
+            const dummyProjects = db.queryAll(`
+                SELECT id, name FROM projects
+                WHERE id IN ('proj-zoho-core', 'proj-mobile-app', 'proj-design-system', 'proj-analytics', 'proj-compliance')
+            `);
+            assert.equal(dummyProjects.length, 0, `Expected 0 dummy sample projects, found: ${dummyProjects.map(p => p.name).join(', ')}`);
+        });
+
+        it('should retain real user-created projects', () => {
+            const realProjects = db.queryAll('SELECT id, name FROM projects');
+            assert.ok(realProjects.length > 0, 'Real projects should be retained');
+        });
+    });
+
+    describe('4. Firebase Functions 2nd Gen Callables Export', () => {
+        it('should properly export validateLogin and validateGoogleLogin', () => {
             assert.ok(cloudFunctions.validateLogin, 'validateLogin callable should be exported');
             assert.ok(cloudFunctions.validateGoogleLogin, 'validateGoogleLogin callable should be exported');
         });

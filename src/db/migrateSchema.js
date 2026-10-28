@@ -38,6 +38,29 @@ function runMigrations() {
     addColumnIfNotExists('invoices', 'currency', "TEXT DEFAULT 'USD'");
     addColumnIfNotExists('invoices', 'tax_percentage', 'REAL DEFAULT 0.0');
     addColumnIfNotExists('invoices', 'paid_at', 'TEXT');
+
+    // Invited Members columns
+    addColumnIfNotExists('invited_members', 'token', 'TEXT');
+    addColumnIfNotExists('invited_members', 'token_hash', 'TEXT');
+    addColumnIfNotExists('invited_members', 'expires_at', 'TEXT');
+    addColumnIfNotExists('invited_members', 'accepted_at', 'TEXT');
+    addColumnIfNotExists('invited_members', 'project_id', 'TEXT');
+
+    // Backfill token_hash for existing tokens
+    try {
+        const crypto = require('crypto');
+        const rows = rawDb.prepare("SELECT id, token FROM invited_members WHERE token_hash IS NULL AND token IS NOT NULL").all();
+        if (rows && rows.length > 0) {
+            const updateStmt = rawDb.prepare("UPDATE invited_members SET token_hash = ? WHERE id = ?");
+            for (const row of rows) {
+                const hash = crypto.createHash('sha256').update(row.token).digest('hex');
+                updateStmt.run(hash, row.id);
+            }
+            console.log(`[Migration] Backfilled SHA-256 token_hash for ${rows.length} invitations.`);
+        }
+    } catch (hashErr) {
+        console.warn('[Migration Warning] Backfilling token_hash:', hashErr.message);
+    }
 }
 
 if (require.main === module) {

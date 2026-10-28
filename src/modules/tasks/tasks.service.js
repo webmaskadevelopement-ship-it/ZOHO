@@ -150,9 +150,17 @@ class TasksService {
                 }
             }
 
-            // 3. Resolve Phase from Task List if not provided
-            let finalPhaseId = phaseId;
-            if (!finalPhaseId) {
+            // 3. Resolve Task List and Phase if not provided
+            let finalTaskListId = taskListId || null;
+            let finalPhaseId = phaseId || null;
+
+            if (!finalTaskListId) {
+                const defaultList = database.prepare('SELECT id, phase_id FROM task_lists WHERE project_id = ? ORDER BY sequence ASC LIMIT 1').get(projectId);
+                if (defaultList) {
+                    finalTaskListId = defaultList.id;
+                    if (!finalPhaseId) finalPhaseId = defaultList.phase_id;
+                }
+            } else if (!finalPhaseId) {
                 const tl = database.prepare('SELECT phase_id FROM task_lists WHERE id = ?').get(taskListId);
                 if (tl) finalPhaseId = tl.phase_id;
             }
@@ -186,14 +194,14 @@ class TasksService {
                     ?, ?, ?, 0, ?, ?
                 )`
             ).run(
-                id, portalId, projectId, finalPhaseId, taskListId, prefixKey, nextSeq,
-                name, descriptionHtml, note, flag, depth, parentTaskId, rootTaskId, JSON.stringify(ancestorIds),
-                nextSeq, statusId, isCompleted, isCompleted, priority, completionPercentage,
-                finalStart, finalEnd, JSON.stringify(duration), JSON.stringify(predecessors),
-                finalStart, finalEnd, JSON.stringify(ownerIds), JSON.stringify(ownersAndWork), billingType,
-                JSON.stringify(budget), JSON.stringify(checklistItems), JSON.stringify(recurrence),
-                JSON.stringify(tagIds), JSON.stringify(followerIds), JSON.stringify(customFields),
-                associatedTeam, workHours, reminder, now, now
+                id, portalId, projectId, finalPhaseId || null, finalTaskListId, prefixKey, nextSeq,
+                name, descriptionHtml || null, note || null, flag || null, depth || 0, parentTaskId || null, rootTaskId || null, JSON.stringify(ancestorIds),
+                nextSeq, statusId || 'open', isCompleted, isCompleted, priority || 'medium', completionPercentage || 0,
+                finalStart || null, finalEnd || null, JSON.stringify(duration || { value: 1, type: 'days' }), JSON.stringify(predecessors || []),
+                finalStart || null, finalEnd || null, JSON.stringify(ownerIds || []), JSON.stringify(ownersAndWork || []), billingType || 'billable',
+                JSON.stringify(budget || {}), JSON.stringify(checklistItems || []), JSON.stringify(recurrence || { isActive: false }),
+                JSON.stringify(tagIds || []), JSON.stringify(followerIds || []), JSON.stringify(customFields || {}),
+                associatedTeam || null, workHours || '00:00', reminder || 'None', now, now
             );
 
             // 5. Update predecessors' successor_ids
