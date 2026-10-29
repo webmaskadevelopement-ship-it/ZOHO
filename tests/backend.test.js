@@ -68,9 +68,38 @@ describe('Life Project Management System - Backend Integration & Engine Tests', 
         clientToken = clientLogin.token;
         clientUserId = clientUser.id;
 
-        // Project ID
-        const proj = db.queryOne("SELECT id FROM projects LIMIT 1");
+        // Create isolated test project
+        const proj = ProjectsService.createProject(portalId, {
+            name: `Backend Test Project ${Date.now()}`,
+            ownerId: adminUser.id
+        });
         projectId = proj.id;
+
+        // Ensure visibility test lists and tasks exist
+        const extList = TaskListsService.createTaskList(portalId, {
+            projectId,
+            name: 'External Client Deliverables',
+            flag: 'external'
+        });
+        const intList = TaskListsService.createTaskList(portalId, {
+            projectId,
+            name: 'Internal Engineering Operations',
+            flag: 'internal'
+        });
+        TasksService.createTask(portalId, {
+            projectId,
+            taskListId: extList.id,
+            name: 'Client Facing Milestone',
+            flag: 'external',
+            ownerIds: [adminUser.id]
+        });
+        TasksService.createTask(portalId, {
+            projectId,
+            taskListId: intList.id,
+            name: 'Internal System Architecture',
+            flag: 'internal',
+            ownerIds: [adminUser.id]
+        });
     });
 
     describe('1. Authentication & Multi-Tenant Portal Scoping', () => {
@@ -497,13 +526,16 @@ describe('Life Project Management System - Backend Integration & Engine Tests', 
     });
 
     after(() => {
-        const keepTaskId = 'task-ae1-t42';
-        db.execute('DELETE FROM tasks WHERE id != ?', [keepTaskId]);
-        db.execute('DELETE FROM issues');
+        db.execute('DELETE FROM tasks WHERE project_id = ?', [projectId]);
+        db.execute('DELETE FROM task_lists WHERE project_id = ?', [projectId]);
+        db.execute('DELETE FROM issues WHERE project_id = ?', [projectId]);
         db.execute('DELETE FROM task_dependencies');
         db.execute('DELETE FROM task_relations');
         db.execute('DELETE FROM task_reminders');
         db.execute('DELETE FROM task_votes');
+        db.execute('DELETE FROM projects WHERE id = ?', [projectId]);
+        db.execute("DELETE FROM users WHERE email = 'client.test@gmail.com'");
+        db.execute("DELETE FROM portal_members WHERE user_id NOT IN (SELECT id FROM users)");
     });
 });
 

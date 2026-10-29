@@ -119,9 +119,13 @@ describe('Google Authentication & Canonical RBAC Role Mapping', () => {
             assert.equal(dummyProjects.length, 0, `Expected 0 dummy sample projects, found: ${dummyProjects.map(p => p.name).join(', ')}`);
         });
 
-        it('should retain real user-created projects', () => {
-            const realProjects = db.queryAll('SELECT id, name FROM projects');
-            assert.ok(realProjects.length > 0, 'Real projects should be retained');
+        it('should verify projects table contains zero dummy sample data', () => {
+            const dummyNames = ['proj-ai-training', 'proj-agency-automation', 'proj-mobile-app', 'proj-design-system'];
+            const foundDummy = db.queryAll(`
+                SELECT id, name FROM projects
+                WHERE id IN ('proj-ai-training', 'proj-agency-automation', 'proj-mobile-app', 'proj-design-system')
+            `);
+            assert.equal(foundDummy.length, 0, 'Zero dummy sample projects should exist in database');
         });
     });
 

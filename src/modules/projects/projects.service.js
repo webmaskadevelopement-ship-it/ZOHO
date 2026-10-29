@@ -79,28 +79,38 @@ class ProjectsService {
         };
     }
 
-    static createProject({
-        portalId,
-        ownerId,
-        name,
-        description = '',
-        keyPrefix = null,
-        projectGroupId = null,
-        startDate = null,
-        endDate = null,
-        isPublic = 1,
-        isStrictSchedule = 0,
-        isRollupProject = 0,
-        budgetConfig = {},
-        projectType = 'active',
-        memberIds = [],
-        clientCompanyIds = []
-    }) {
+    static createProject(firstArg, secondArg = {}) {
+        let options = {};
+        if (typeof firstArg === 'string') {
+            options = { portalId: firstArg, ...secondArg };
+        } else if (firstArg && typeof firstArg === 'object') {
+            options = firstArg;
+        }
+
+        const {
+            portalId,
+            ownerId,
+            name = 'New Project',
+            description = '',
+            keyPrefix = null,
+            projectGroupId = null,
+            startDate = null,
+            endDate = null,
+            isPublic = 1,
+            isStrictSchedule = 0,
+            isRollupProject = 0,
+            budgetConfig = {},
+            projectType = 'active',
+            memberIds = [],
+            clientCompanyIds = []
+        } = options;
+
         const id = uuidv4();
         const now = new Date().toISOString();
 
         // Generate Prefix Key e.g. "ZPA", "PROJ"
-        const prefix = (keyPrefix || name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'PR')).padEnd(3, 'J');
+        const cleanName = (name && typeof name === 'string') ? name : 'PRJ';
+        const prefix = (keyPrefix || cleanName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'PR')).padEnd(3, 'J');
 
         const initialBudget = {
             currency: 'USD',

@@ -25,26 +25,41 @@ describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite',
 
     before(() => {
         db.getInstance();
+        const ProjectsService = require('../src/modules/projects/projects.service');
         const admin = db.queryOne("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
         const manager = db.queryOne("SELECT id FROM users WHERE role IN ('manager', 'member', 'employee') LIMIT 1") || admin;
-        const proj = db.queryOne("SELECT id FROM projects LIMIT 1");
+        let proj = db.queryOne("SELECT id FROM projects LIMIT 1");
 
         adminUserId = admin ? admin.id : 'user-admin';
         employeeUserId = manager ? manager.id : 'user-dev';
-        projectId = proj ? proj.id : 'proj-ai-training';
 
-        const tasks = db.queryAll('SELECT id FROM tasks WHERE project_id = ? LIMIT 2', [projectId]);
-        sampleTaskId = tasks[0]?.id;
-        if (tasks.length >= 2) {
-            sampleTargetTaskId = tasks[1]?.id;
-        } else if (sampleTaskId) {
-            const second = TasksService.createTask(portalId, {
+        if (!proj) {
+            proj = ProjectsService.createProject(portalId, {
+                name: 'Deep Audit Test Project',
+                ownerId: adminUserId
+            });
+        }
+        projectId = proj.id;
+
+        let tasks = db.queryAll('SELECT id FROM tasks WHERE project_id = ? LIMIT 2', [projectId]);
+        if (tasks.length === 0) {
+            const t1 = TasksService.createTask(portalId, {
                 projectId,
-                name: 'AE1-T2 | Phase 2 - Deliverable Setup',
+                name: 'Test Audit Task 1',
                 ownerIds: [adminUserId],
                 statusId: 'status-open'
             });
-            sampleTargetTaskId = second.id;
+            sampleTaskId = t1.id;
+            const t2 = TasksService.createTask(portalId, {
+                projectId,
+                name: 'Test Audit Task 2',
+                ownerIds: [adminUserId],
+                statusId: 'status-open'
+            });
+            sampleTargetTaskId = t2.id;
+        } else {
+            sampleTaskId = tasks[0]?.id;
+            sampleTargetTaskId = tasks[1]?.id;
         }
     });
 
@@ -466,12 +481,12 @@ describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite',
     });
 
     after(() => {
-        const keepTaskId = 'task-ae1-t42';
-        db.execute('DELETE FROM tasks WHERE id != ?', [keepTaskId]);
+        db.execute('DELETE FROM tasks');
         db.execute('DELETE FROM issues');
         db.execute('DELETE FROM task_relations');
         db.execute('DELETE FROM task_reminders');
         db.execute('DELETE FROM task_votes');
+        db.execute("DELETE FROM projects WHERE name = 'Deep Audit Test Project'");
     });
 });
 

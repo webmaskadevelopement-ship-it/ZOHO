@@ -33,7 +33,15 @@ describe('Email Sharing & Backend Integration Test Suite', () => {
         managerUser = db.queryOne("SELECT id, email, name, role FROM users WHERE role = 'manager' LIMIT 1");
         clientUser = db.queryOne("SELECT id, email, name, role FROM users WHERE role = 'client' LIMIT 1");
 
-        const proj = db.queryOne("SELECT id FROM projects LIMIT 1");
+        let isTempProject = false;
+        let proj = db.queryOne("SELECT id FROM projects LIMIT 1");
+        if (!proj) {
+            proj = ProjectsService.createProject(portalId, {
+                name: 'Email Sharing Test Project',
+                ownerId: adminUser.id
+            });
+            isTempProject = true;
+        }
         projectId = proj.id;
 
         // Login Admin
@@ -235,9 +243,8 @@ describe('Email Sharing & Backend Integration Test Suite', () => {
     });
 
     after(() => {
-        // Ensure project members list is pristine with admin
-        const proj = ProjectsService.getProjectById(portalId, projectId);
-        const cleanMembers = [adminUser.id];
-        db.execute('UPDATE projects SET member_ids = ? WHERE id = ?', [JSON.stringify(cleanMembers), projectId]);
+        db.execute("DELETE FROM projects WHERE name = 'Email Sharing Test Project'");
+        db.execute("DELETE FROM users WHERE email LIKE '%@example.com' OR email LIKE '%@webmaska.com'");
+        db.execute("DELETE FROM portal_members WHERE user_id NOT IN (SELECT id FROM users)");
     });
 });

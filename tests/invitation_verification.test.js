@@ -27,6 +27,14 @@ describe('Email Invitation & Verification Lifecycle Test Suite', () => {
     before(async () => {
         db.getInstance();
         testProject = db.queryOne('SELECT id, name FROM projects LIMIT 1');
+        if (!testProject) {
+            const ProjectsService = require('../src/modules/projects/projects.service');
+            const admin = db.queryOne("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+            testProject = ProjectsService.createProject(portalId, {
+                name: 'Invitation Test Project',
+                ownerId: admin ? admin.id : 'user-admin'
+            });
+        }
 
         // Start server on 5000 if not listening
         try {
@@ -187,6 +195,16 @@ describe('Email Invitation & Verification Lifecycle Test Suite', () => {
         it('should associate project_id with invite and assign member to project upon login', async () => {
             const projectInviteEmail = `proj.colleague.${Date.now()}@example.com`;
 
+            // Ensure testProject exists
+            let proj = db.queryOne('SELECT id, name FROM projects WHERE id = ?', [testProject?.id]);
+            if (!proj) {
+                const admin = db.queryOne("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+                testProject = ProjectsService.createProject(portalId, {
+                    name: `Invitation Project ${Date.now()}`,
+                    ownerId: admin ? admin.id : 'user-admin'
+                });
+            }
+
             // Share project
             const shareRes = await ProjectsService.shareProject(portalId, testProject.id, {
                 email: projectInviteEmail,
@@ -230,5 +248,11 @@ describe('Email Invitation & Verification Lifecycle Test Suite', () => {
             assert.ok('configured' in body.data);
             assert.ok('provider' in body.data);
         });
+    });
+
+    after(() => {
+        db.execute("DELETE FROM projects WHERE name = 'Invitation Test Project'");
+        db.execute("DELETE FROM users WHERE email LIKE '%@example.com'");
+        db.execute("DELETE FROM invited_members WHERE email LIKE '%@example.com'");
     });
 });

@@ -1464,7 +1464,7 @@ async function loadAllProjectsTable(filterScope = 'active') {
 
     tbody.innerHTML = projects.map((proj, idx) => {
         const projId = proj.id;
-        const keyPrefix = proj.key_prefix || proj.keyPrefix || `WE-${22 - idx}`;
+        const keyPrefix = proj.key_prefix || proj.keyPrefix || (proj.name ? proj.name.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '') : `PRJ-${idx + 1}`);
 
         let completion = 0;
         let openTasks = 0;
@@ -1670,20 +1670,20 @@ async function loadCollaborationView() {
     if (currentCollabSubTab !== 'status') {
         allTasksCache.forEach(t => {
             const currentProj = allProjectsCache.find(p => p.id === (t.projectId || currentProjectId));
-            const projName = currentProj ? currentProj.name : 'AI Training';
+            const projName = currentProj ? currentProj.name : '';
             const owner = getUserDisplay(t.owner_id);
-            const taskKey = t.prefix_key || ('AE1-T' + (t.sequence_number || 54));
+            const taskKey = t.prefix_key || (t.sequence_number ? `T-${t.sequence_number}` : 'TASK');
 
             feedItems.push({
                 id: `feed-task-${t.id}`,
                 taskId: t.id,
                 actor: owner.name,
                 initials: owner.initials,
-                headline: `<span class="collab-feed-actor">${escapeHtml(owner.name)}</span> has added a <a href="#tasks" class="collab-blue-link">Task</a> in <a href="#project/${currentProj?.id || currentProjectId}/tasks" class="collab-blue-link">${escapeHtml(projName)}</a>`,
+                headline: `<span class="collab-feed-actor">${escapeHtml(owner.name)}</span> has added a <a href="#tasks" class="collab-blue-link">Task</a>${projName ? ` in <a href="#project/${currentProj?.id || currentProjectId}/tasks" class="collab-blue-link">${escapeHtml(projName)}</a>` : ''}`,
                 key: taskKey,
                 title: t.name,
                 description: t.description_html || t.note || '',
-                timestamp: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Monday at 6:25 PM',
+                timestamp: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
                 type: 'task'
             });
         });
@@ -1691,17 +1691,17 @@ async function loadCollaborationView() {
         // 3. Add genuine phases as collaboration feed events
         allPhasesCache.forEach(m => {
             const currentProj = allProjectsCache.find(p => p.id === (m.projectId || currentProjectId));
-            const projName = currentProj ? currentProj.name : 'RITIKA PROJECTS';
+            const projName = currentProj ? currentProj.name : '';
             const owner = getUserDisplay(m.owner_id);
 
             feedItems.push({
                 id: `feed-phase-${m.id}`,
                 actor: owner.name,
                 initials: owner.initials,
-                headline: `<span class="collab-feed-actor">${escapeHtml(owner.name)}</span> has added a <a href="#phases" class="collab-blue-link">Phase</a> in <a href="#project/${currentProj?.id || currentProjectId}/phases" class="collab-blue-link">${escapeHtml(projName)}</a>`,
+                headline: `<span class="collab-feed-actor">${escapeHtml(owner.name)}</span> has added a <a href="#phases" class="collab-blue-link">Phase</a>${projName ? ` in <a href="#project/${currentProj?.id || currentProjectId}/phases" class="collab-blue-link">${escapeHtml(projName)}</a>` : ''}`,
                 key: null,
                 title: m.name,
-                timestamp: 'Monday at 5:10 PM',
+                timestamp: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
                 type: 'phase'
             });
         });
@@ -2175,7 +2175,7 @@ async function loadTaskKanbanView() {
                 <div class="kanban-cards-list">
                     ${colTasks.length === 0 ? '<div style="padding:16px; text-align:center; font-size:11.5px; color:var(--text-muted);">No tasks</div>' : colTasks.map(t => `
                         <div class="kanban-card" data-task-id="${t.id}">
-                            <div class="kanban-card-key">${t.prefix_key || ('AE1-T' + (t.sequence_number || 1))}</div>
+                            <div class="kanban-card-key">${t.prefix_key || (t.sequence_number ? `T-${t.sequence_number}` : 'TASK')}</div>
                             <div class="kanban-card-title">${t.name}</div>
                             <div class="kanban-card-footer">
                                 <span>${t.priority || 'medium'}</span>
@@ -2462,7 +2462,7 @@ async function loadProjectPhasesSheet(projectId) {
     if (rangeDisplayEl) rangeDisplayEl.textContent = phases.length > 0 ? `1-${phases.length}` : '0-0';
 
     const currentProj = allProjectsCache.find(p => p.id === projectId);
-    const projName = currentProj ? currentProj.name : 'TAG : Social Media';
+    const projName = currentProj ? currentProj.name : (projectId || 'Project');
 
     let html = `
         <tr class="inline-quick-add-row">
