@@ -264,6 +264,7 @@ class PortalsService {
             messageId: emailResult.messageId || null,
             previewUrl: emailResult.previewUrl || null,
             deliveredToInbox: emailResult.deliveredToInbox || false,
+            isDailyLimitExceeded: emailResult.isDailyLimitExceeded || false,
             sandboxOnly: emailResult.sandboxOnly || false,
             provider: emailResult.provider || null,
             emailDelivery: emailResult

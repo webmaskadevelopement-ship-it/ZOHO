@@ -4,6 +4,7 @@
  * access control, permissions, and database record integrity.
  */
 
+process.env.NODE_ENV = 'test';
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');

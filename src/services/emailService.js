@@ -13,6 +13,31 @@ class EmailService {
      * Returns { transporter, isRealSmtp, provider, host, user, from }
      */
     static async getTransporterInfo() {
+        // Safe mock transport during unit / automated testing to prevent rate limit exhaustion
+        if (process.env.NODE_ENV === 'test' || process.env.MOCK_SMTP === 'true') {
+            const hasRealCreds = Boolean(
+                (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) ||
+                (process.env.SMTP_USER && process.env.SMTP_PASS)
+            );
+            return {
+                transporter: {
+                    sendMail: async (opts) => ({
+                        messageId: 'mock-msg-' + Date.now().toString(36),
+                        accepted: Array.isArray(opts.to) ? opts.to : [opts.to],
+                        rejected: [],
+                        response: '250 2.0.0 OK: Mocked test delivery'
+                    }),
+                    verify: async () => true
+                },
+                isRealSmtp: hasRealCreds,
+                isMock: true,
+                provider: 'test_mock',
+                host: 'mock.smtp.test',
+                user: process.env.GMAIL_USER || 'test@lifepms.com',
+                from: process.env.SMTP_FROM || 'Life PMS <notifications@lifepms.com>'
+            };
+        }
+
         const gmailUser = process.env.GMAIL_USER || (process.env.SMTP_HOST?.includes('gmail.com') ? process.env.SMTP_USER : null);
         const gmailPass = process.env.GMAIL_APP_PASSWORD || (process.env.SMTP_HOST?.includes('gmail.com') ? process.env.SMTP_PASS : null);
 
@@ -234,9 +259,11 @@ class EmailService {
             };
         } catch (err) {
             console.error(`[SMTP Error] Delivery failed to ${to}:`, err.message);
+            const isLimit = /550|daily user sending limit|quota|limit exceeded/i.test(err.message || '');
             return {
                 success: false,
                 deliveredToInbox: false,
+                isDailyLimitExceeded: isLimit,
                 error: err.message,
                 code: err.code || null,
                 provider

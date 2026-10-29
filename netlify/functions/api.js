@@ -249,24 +249,16 @@ exports.handler = async (event, context) => {
             const appBase = resolveBaseUrl(event, body);
             const inviteLink = `${appBase}/login?token=${token}&inviteEmail=${encodeURIComponent(cleanEmail)}&inviteName=${encodeURIComponent(cleanName)}&role=${encodeURIComponent(safeRole)}`;
 
-            const { user: gmailUser, pass: gmailPass, from: smtpFrom } = getEmailCredentials();
+            const { user: gmailUser, pass: gmailPass, from: smtpFrom, backupUser, backupPass } = getEmailCredentials();
 
-            if (!gmailUser || !gmailPass) {
-                return {
-                    statusCode: 500,
-                    headers: CORS_HEADERS,
-                    body: JSON.stringify({
-                        success: false,
-                        error: 'Email delivery credentials are missing in Netlify. Please add GMAIL_USER and GMAIL_APP_PASSWORD under Netlify Site configuration > Environment variables.'
-                    })
-                };
-            }
-
-            // Create Nodemailer Transporter
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: { user: gmailUser, pass: gmailPass }
-            });
+            let emailDelivery = {
+                success: false,
+                deliveredToInbox: false,
+                isDailyLimitExceeded: false,
+                error: null,
+                messageId: null,
+                provider: 'none'
+            };
 
             const html = `
                 <!DOCTYPE html>
@@ -322,14 +314,63 @@ exports.handler = async (event, context) => {
                 </html>
             `;
 
-            const info = await transporter.sendMail({
-                from: smtpFrom || `Life PMS <${gmailUser}>`,
-                to: cleanEmail,
-                subject: `You've been invited to join Life PMS Projects on Life PMS`,
-                html
-            });
+            // Attempt delivery via configured SMTP / Gmail
+            if (gmailUser && gmailPass) {
+                try {
+                    const transporter = nodemailer.createTransport({
+                        service: 'gmail',
+                        auth: { user: gmailUser, pass: gmailPass }
+                    });
 
-            console.log(`[Netlify Email Sent] Recipient: ${cleanEmail} | MessageId: ${info.messageId} | Link: ${inviteLink}`);
+                    const info = await transporter.sendMail({
+                        from: smtpFrom || `Life PMS <${gmailUser}>`,
+                        to: cleanEmail,
+                        subject: `You've been invited to join Life PMS Projects on Life PMS`,
+                        html
+                    });
+
+                    emailDelivery.success = true;
+                    emailDelivery.deliveredToInbox = true;
+                    emailDelivery.messageId = info.messageId;
+                    emailDelivery.provider = 'gmail';
+                    console.log(`[Netlify Email Sent] Recipient: ${cleanEmail} | MessageId: ${info.messageId} | Link: ${inviteLink}`);
+                } catch (mailErr) {
+                    console.warn(`[Netlify Email Send Primary Failed] ${mailErr.message}`);
+                    emailDelivery.error = mailErr.message;
+                    emailDelivery.provider = 'gmail';
+                    const isLimit = /550|daily user sending limit|quota|limit exceeded/i.test(mailErr.message || '');
+                    if (isLimit) {
+                        emailDelivery.isDailyLimitExceeded = true;
+                    }
+
+                    // Attempt fallback credentials if configured
+                    if (backupUser && backupPass) {
+                        try {
+                            const backupTransporter = nodemailer.createTransport({
+                                service: 'gmail',
+                                auth: { user: backupUser, pass: backupPass }
+                            });
+                            const backupInfo = await backupTransporter.sendMail({
+                                from: `Life PMS <${backupUser}>`,
+                                to: cleanEmail,
+                                subject: `You've been invited to join Life PMS Projects on Life PMS`,
+                                html
+                            });
+                            emailDelivery.success = true;
+                            emailDelivery.deliveredToInbox = true;
+                            emailDelivery.messageId = backupInfo.messageId;
+                            emailDelivery.provider = 'gmail_backup';
+                            emailDelivery.error = null;
+                            emailDelivery.isDailyLimitExceeded = false;
+                            console.log(`[Netlify Backup Email Sent] Recipient: ${cleanEmail} | MessageId: ${backupInfo.messageId}`);
+                        } catch (backupErr) {
+                            console.warn(`[Netlify Backup Email Failed]: ${backupErr.message}`);
+                        }
+                    }
+                }
+            } else {
+                emailDelivery.error = 'Email delivery credentials not configured. Direct invitation link generated.';
+            }
 
             const inviteId = 'inv-' + Date.now().toString(36);
             return {
@@ -348,16 +389,19 @@ exports.handler = async (event, context) => {
                         name: cleanName,
                         role: safeRole,
                         inviteLink,
-                        messageId: info.messageId,
-                        deliveredToInbox: true,
+                        messageId: emailDelivery.messageId,
+                        deliveredToInbox: emailDelivery.deliveredToInbox,
+                        isDailyLimitExceeded: emailDelivery.isDailyLimitExceeded,
                         sandboxOnly: false,
-                        provider: 'gmail',
+                        provider: emailDelivery.provider,
                         emailDelivery: {
-                            success: true,
-                            deliveredToInbox: true,
-                            messageId: info.messageId,
-                            accepted: info.accepted || [cleanEmail],
-                            provider: 'gmail'
+                            success: emailDelivery.success,
+                            deliveredToInbox: emailDelivery.deliveredToInbox,
+                            isDailyLimitExceeded: emailDelivery.isDailyLimitExceeded,
+                            messageId: emailDelivery.messageId,
+                            accepted: emailDelivery.deliveredToInbox ? [cleanEmail] : [],
+                            error: emailDelivery.error,
+                            provider: emailDelivery.provider
                         }
                     }
                 })
@@ -403,38 +447,50 @@ exports.handler = async (event, context) => {
             const viewUrl = `${appBase}/api/v1/views/public-share/${shareToken}`;
 
             const { user: gmailUser, pass: gmailPass, from: smtpFrom } = getEmailCredentials();
-            if (!gmailUser || !gmailPass) {
-                return {
-                    statusCode: 500,
-                    headers: CORS_HEADERS,
-                    body: JSON.stringify({
-                        success: false,
-                        error: 'Email delivery credentials are missing in Netlify. Please add GMAIL_USER and GMAIL_APP_PASSWORD in Netlify.'
-                    })
-                };
+            let emailSent = false;
+            let sendError = null;
+
+            if (gmailUser && gmailPass) {
+                try {
+                    const transporter = nodemailer.createTransport({
+                        service: 'gmail',
+                        auth: { user: gmailUser, pass: gmailPass }
+                    });
+
+                    await transporter.sendMail({
+                        from: smtpFrom || `Life PMS <${gmailUser}>`,
+                        to: cleanEmail,
+                        subject: `Shared View on Life PMS`,
+                        html: `
+                            <div style="font-family:sans-serif; background:#0F172A; color:#F8FAFC; padding:24px; border-radius:8px;">
+                                <h2>Shared View on Life PMS</h2>
+                                <p>A read-only view has been shared with you: <a href="${viewUrl}" style="color:#38BDF8;">${viewUrl}</a></p>
+                            </div>
+                        `
+                    });
+                    emailSent = true;
+                } catch (err) {
+                    console.warn('[Netlify View Share Email Failed]:', err.message);
+                    sendError = err.message;
+                }
             }
-
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: { user: gmailUser, pass: gmailPass }
-            });
-
-            await transporter.sendMail({
-                from: smtpFrom || `Life PMS <${gmailUser}>`,
-                to: cleanEmail,
-                subject: `Shared View on Life PMS`,
-                html: `
-                    <div style="font-family:sans-serif; background:#0F172A; color:#F8FAFC; padding:24px; border-radius:8px;">
-                        <h2>Shared View on Life PMS</h2>
-                        <p>A read-only view has been shared with you: <a href="${viewUrl}" style="color:#38BDF8;">${viewUrl}</a></p>
-                    </div>
-                `
-            });
 
             return {
                 statusCode: 200,
                 headers: CORS_HEADERS,
-                body: JSON.stringify({ success: true, message: `Share link emailed to ${cleanEmail}` })
+                body: JSON.stringify({
+                    success: true,
+                    deliveredToInbox: emailSent,
+                    viewUrl,
+                    emailDelivery: {
+                        success: emailSent,
+                        deliveredToInbox: emailSent,
+                        error: sendError
+                    },
+                    message: emailSent
+                        ? `Share link emailed to ${cleanEmail}`
+                        : `Share link generated. Note: Email provider reported: ${sendError || 'SMTP limit reached'}. Direct access link: ${viewUrl}`
+                })
             };
         }
 

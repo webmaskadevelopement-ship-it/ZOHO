@@ -3562,22 +3562,75 @@ function setupInviteMemberModal() {
                 if (emailInput) emailInput.value = '';
 
                 const delivery = res.data?.emailDelivery || {};
-                let statusMsg = '';
+                const inviteLink = res.data?.inviteLink || `${window.location.origin}/login?inviteEmail=${encodeURIComponent(email)}&inviteName=${encodeURIComponent(name)}&role=${encodeURIComponent(role)}`;
+                const isDailyLimit = delivery.isDailyLimitExceeded || /550|daily user sending limit|quota|limit exceeded/i.test(delivery.error || '') || /550|daily user sending limit|quota|limit exceeded/i.test(res.data?.error || '');
+
                 if (delivery.deliveredToInbox) {
-                    statusMsg = `✓ Real invitation email successfully sent and accepted by email provider for delivery to ${email} (${role})!${fbNotice}`;
+                    alert(`✓ Invitation email sent!\n\nEmail delivered to ${email} (${role}). The invite link has also been generated and activated.${fbNotice}`);
+                } else if (isDailyLimit) {
+                    let copied = false;
+                    try {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(inviteLink);
+                            copied = true;
+                        }
+                    } catch (clipErr) {}
+
+                    alert(
+                        `✓ Member successfully invited to workspace!${fbNotice}\n\n` +
+                        `⚠️ Google Gmail Notice:\n` +
+                        `Google's daily sending limit has been reached on the backend sender account (Gmail Error 550-5.4.5). Google automatically resets this limit within 24 hours.\n\n` +
+                        `📋 Direct Invitation Link ${copied ? '(Copied to Clipboard!)' : ''}:\n` +
+                        `${inviteLink}\n\n` +
+                        `You can paste and send this invitation link directly to ${name || email} so they can access the workspace immediately!`
+                    );
                 } else if (delivery.sandboxOnly) {
-                    statusMsg = `✓ Member invited and recorded in workspace database!${fbNotice}\n\n⚠️ Email Delivery Notice: Real SMTP credentials are not configured in .env. The invitation email was captured by the developer test sandbox:\n${res.data.previewUrl || delivery.previewUrl}\n\nTo deliver directly to real recipient inboxes, please configure SMTP_USER & SMTP_PASS (or GMAIL_USER & GMAIL_APP_PASSWORD) in .env.`;
+                    alert(`✓ Member invited and recorded in workspace database!${fbNotice}\n\n⚠️ Email Delivery Notice: Real SMTP credentials are not configured in .env. The invitation email was captured by the developer test sandbox:\n${res.data?.previewUrl || delivery.previewUrl}\n\nDirect Invite Link:\n${inviteLink}`);
                 } else if (delivery.success === false) {
-                    statusMsg = `✓ Member invited and recorded in workspace database!${fbNotice}\n\n⚠️ Email Delivery Notice: The email provider rejected delivery (${delivery.error || 'SMTP delivery failed'}). Please check your SMTP settings in .env.`;
+                    let copied = false;
+                    try {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(inviteLink);
+                            copied = true;
+                        }
+                    } catch (clipErr) {}
+                    alert(`✓ Member invited and recorded in workspace database!${fbNotice}\n\n⚠️ Email Delivery Notice: The email provider rejected delivery (${delivery.error || 'SMTP delivery rejected'}).\n\n📋 Direct Invitation Link ${copied ? '(Copied to Clipboard!)' : ''}:\n${inviteLink}\n\nYou can share this link directly with ${email}.`);
                 } else {
-                    statusMsg = `✓ Member invited and recorded in workspace database for ${email} (${role})!${fbNotice}`;
+                    alert(`✓ Member invited and recorded in workspace database for ${email} (${role})!${fbNotice}`);
                 }
-                alert(statusMsg);
+
                 if (document.getElementById('view-team-users')?.classList.contains('active')) {
                     await loadTeamDirectory();
                 }
             } else {
-                alert(`Failed to send invitation: ${res.error || 'Server error occurred during email delivery.'}`);
+                const isDailyLimit = /550|daily user sending limit|quota|limit exceeded/i.test(res.error || '');
+                if (isDailyLimit) {
+                    const fallbackLink = `${window.location.origin}/login?inviteEmail=${encodeURIComponent(email)}&inviteName=${encodeURIComponent(name)}&role=${encodeURIComponent(role)}`;
+                    let copied = false;
+                    try {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(fallbackLink);
+                            copied = true;
+                        }
+                    } catch (e) {}
+
+                    alert(
+                        `✓ Member invitation created!${fbNotice}\n\n` +
+                        `⚠️ Google Gmail Notice:\n` +
+                        `Google SMTP daily sending limit was reached (Gmail 550-5.4.5). Google resets this limit every 24 hours.\n\n` +
+                        `📋 Direct Access Link ${copied ? '(Copied to Clipboard!)' : ''}:\n` +
+                        `${fallbackLink}\n\n` +
+                        `You can paste and send this link directly to ${name || email}!`
+                    );
+                    closeModal('modalInviteMember');
+                    if (nameInput) nameInput.value = '';
+                    if (emailInput) emailInput.value = '';
+                    if (document.getElementById('view-team-users')?.classList.contains('active')) {
+                        await loadTeamDirectory();
+                    }
+                } else {
+                    alert(`Failed to send invitation: ${res.error || 'Server error occurred during email delivery.'}`);
+                }
             }
         } catch (err) {
             alert(`Email delivery failed: ${err.message}`);
@@ -4052,7 +4105,10 @@ function setupShareModal() {
                 } else if (data.sandboxOnly) {
                     deliveryNote = ' • (Notice: Email in test sandbox; SMTP credentials required in .env for real delivery)';
                 } else if (data.emailDelivery?.success === false) {
-                    deliveryNote = ` • (⚠️ Email notice: ${data.emailDelivery?.error || 'SMTP delivery failed'})`;
+                    const isLimit = data.emailDelivery?.isDailyLimitExceeded || /550|daily user sending limit|quota|limit exceeded/i.test(data.emailDelivery?.error || '');
+                    deliveryNote = isLimit
+                        ? ' • (⚠️ Gmail daily sending limit reached. Link generated for direct sharing)'
+                        : ` • (⚠️ Email notice: ${data.emailDelivery?.error || 'SMTP delivery failed'})`;
                 }
                 showShareStatus(`✓ ${successMsg}${deliveryNote}${fbNotice}`, 'success');
                 if (emailInput) emailInput.value = '';
