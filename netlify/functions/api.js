@@ -73,6 +73,9 @@ function getEmailCredentials() {
     let pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || process.env.MAIL_PASSWORD;
     let from = process.env.SMTP_FROM;
 
+    let backupUser = process.env.GMAIL_BACKUP_USER || process.env.SMTP_BACKUP_USER;
+    let backupPass = process.env.GMAIL_BACKUP_APP_PASSWORD || process.env.SMTP_BACKUP_PASS;
+
     // Check if bundled configuration exists
     if (!user || !pass) {
         try {
@@ -82,6 +85,8 @@ function getEmailCredentials() {
                 user = user || bundled.GMAIL_USER || bundled.SMTP_USER;
                 pass = pass || bundled.GMAIL_APP_PASSWORD || bundled.SMTP_PASS;
                 from = from || bundled.SMTP_FROM;
+                backupUser = backupUser || bundled.GMAIL_BACKUP_USER || bundled.SMTP_BACKUP_USER;
+                backupPass = backupPass || bundled.GMAIL_BACKUP_APP_PASSWORD || bundled.SMTP_BACKUP_PASS;
             }
         } catch (e) {}
     }
@@ -95,9 +100,13 @@ function getEmailCredentials() {
                 const userMatch = content.match(/GMAIL_USER=["']?([^"'\r\n]+)["']?/) || content.match(/SMTP_USER=["']?([^"'\r\n]+)["']?/);
                 const passMatch = content.match(/GMAIL_APP_PASSWORD=["']?([^"'\r\n]+)["']?/) || content.match(/SMTP_PASS=["']?([^"'\r\n]+)["']?/);
                 const fromMatch = content.match(/SMTP_FROM=["']?([^"'\r\n]+)["']?/);
+                const backupUserMatch = content.match(/GMAIL_BACKUP_USER=["']?([^"'\r\n]+)["']?/) || content.match(/SMTP_BACKUP_USER=["']?([^"'\r\n]+)["']?/);
+                const backupPassMatch = content.match(/GMAIL_BACKUP_APP_PASSWORD=["']?([^"'\r\n]+)["']?/) || content.match(/SMTP_BACKUP_PASS=["']?([^"'\r\n]+)["']?/);
                 if (userMatch && userMatch[1]) user = user || userMatch[1].trim();
                 if (passMatch && passMatch[1]) pass = pass || passMatch[1].trim();
                 if (fromMatch && fromMatch[1]) from = from || fromMatch[1].trim();
+                if (backupUserMatch && backupUserMatch[1]) backupUser = backupUser || backupUserMatch[1].trim();
+                if (backupPassMatch && backupPassMatch[1]) backupPass = backupPass || backupPassMatch[1].trim();
             }
         } catch (e) {}
     }
@@ -105,6 +114,8 @@ function getEmailCredentials() {
     return {
         user: user ? user.trim() : null,
         pass: pass ? pass.replace(/\s+/g, '') : null,
+        backupUser: backupUser ? backupUser.trim() : null,
+        backupPass: backupPass ? backupPass.replace(/\s+/g, '') : null,
         from: from || (user ? `Life PMS <${user.trim()}>` : 'Life PMS <notifications@lifepms.com>')
     };
 }
