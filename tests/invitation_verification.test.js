@@ -176,6 +176,10 @@ describe('Email Invitation & Verification Lifecycle Test Suite', () => {
             assert.equal(verifyBody.success, true);
             assert.equal(verifyBody.alreadyAccepted, true);
             assert.ok(verifyBody.message.includes('already been accepted'));
+
+            // Clean up test user
+            db.execute('DELETE FROM invited_members WHERE LOWER(email) = ?', [testEmail.toLowerCase()]);
+            db.execute('DELETE FROM users WHERE LOWER(email) = ?', [testEmail.toLowerCase()]);
         });
     });
 

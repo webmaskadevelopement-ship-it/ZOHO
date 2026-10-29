@@ -1052,6 +1052,117 @@ function setupNavigation() {
         switchActiveView('team');
     });
 
+    // Floating Help & Bottom Live Chat
+    document.getElementById('btnFloatingHelp')?.addEventListener('click', () => {
+        openModal('modalHelpShortcuts');
+    });
+    document.getElementById('btnBottomLiveChat')?.addEventListener('click', () => {
+        document.getElementById('chatDrawerOverlay')?.classList.add('open');
+        renderLiveChatMessages();
+    });
+
+    // Zoho Suite Apps Launcher (9-Dots)
+    const btnAppLauncher = document.getElementById('btnAppLauncher');
+    const appsMenu = document.getElementById('zohoAppsLauncherMenu');
+    btnAppLauncher?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (appsMenu) {
+            appsMenu.style.display = appsMenu.style.display === 'block' ? 'none' : 'block';
+        }
+    });
+    document.addEventListener('click', (e) => {
+        if (appsMenu && !appsMenu.contains(e.target) && e.target !== btnAppLauncher) {
+            appsMenu.style.display = 'none';
+        }
+    });
+    document.querySelectorAll('.app-launch-tile').forEach(tile => {
+        tile.addEventListener('click', (e) => {
+            e.preventDefault();
+            const nav = tile.getAttribute('data-app-nav');
+            if (appsMenu) appsMenu.style.display = 'none';
+            if (nav) switchActiveView(nav);
+        });
+    });
+
+    // Header Settings Gear -> Diagnostics & Workspace Settings
+    document.getElementById('btnHeaderSettings')?.addEventListener('click', () => {
+        openModal('modalSystemInfo');
+    });
+
+    // Project Options (••• in Navbar)
+    document.getElementById('btnProjectOptions')?.addEventListener('click', () => {
+        const choice = prompt('Project Options:\n1. Rename Project\n2. Share Project & Invite Members\n3. System Diagnostics\n\nEnter option (1-3):', '2');
+        if (choice === '1') {
+            const p = allProjectsCache.find(x => x.id === currentProjectId);
+            if (!p) return;
+            const newName = prompt('Enter new project name:', p.name);
+            if (newName && newName.trim()) {
+                apiFetch(`/api/v1/projects/${currentProjectId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ name: newName.trim() })
+                }).then(() => {
+                    p.name = newName.trim();
+                    updateNavbarProjectName();
+                    loadAllProjectsTable();
+                });
+            }
+        } else if (choice === '2') {
+            openModal('modalShareLink');
+        } else if (choice === '3') {
+            openModal('modalSystemInfo');
+        }
+    });
+
+    // Overview Quick Add (+)
+    document.getElementById('btnOverviewQuickAdd')?.addEventListener('click', () => {
+        openModal('modalAddTask');
+    });
+
+    // Dashboard Add Widget & Preferences
+    document.getElementById('btnAddWidget')?.addEventListener('click', () => {
+        openModal('modalAddWidget');
+    });
+    document.getElementById('btnSaveWidgetLayout')?.addEventListener('click', () => {
+        const showTasks = document.getElementById('chkWidgetMyTasks')?.checked ?? true;
+        const showIssues = document.getElementById('chkWidgetMyIssues')?.checked ?? true;
+        const showSecondary = document.getElementById('chkWidgetSecondary')?.checked ?? false;
+        const boxTasks = document.getElementById('widgetBoxMyTasks');
+        const boxIssues = document.getElementById('widgetBoxMyIssues');
+        const sec = document.getElementById('dashSecondaryWidgets');
+        if (boxTasks) boxTasks.style.display = showTasks ? 'flex' : 'none';
+        if (boxIssues) boxIssues.style.display = showIssues ? 'flex' : 'none';
+        if (sec) sec.style.display = showSecondary ? 'block' : 'none';
+        closeModal('modalAddWidget');
+    });
+
+    // Dashboard Scope Dropdown & More Options
+    document.getElementById('btnDashScopeDropdown')?.addEventListener('click', () => {
+        const opt = prompt('Switch Dashboard Scope:\n1. Global Dashboard\n2. My Dashboard\n3. Executive Summary\n\nEnter option (1-3):', '1');
+        const titleEl = document.getElementById('dashScopeTitle');
+        if (opt === '2' && titleEl) titleEl.textContent = 'My Dashboard ▾';
+        else if (opt === '3' && titleEl) titleEl.textContent = 'Executive Summary ▾';
+        else if (titleEl) titleEl.textContent = 'Global Dashboard ▾';
+    });
+    document.getElementById('btnMoreDashOptions')?.addEventListener('click', () => {
+        loadGlobalDashboardStats();
+    });
+    document.getElementById('btnMyTasksViewMore')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchActiveView('tasks');
+    });
+    document.getElementById('btnExpandMyTasks')?.addEventListener('click', () => {
+        const box = document.getElementById('widgetBoxMyTasks');
+        if (box) {
+            box.style.gridColumn = box.style.gridColumn === '1 / -1' ? '' : '1 / -1';
+        }
+    });
+    document.getElementById('btnExpandMyIssues')?.addEventListener('click', () => {
+        const box = document.getElementById('widgetBoxMyIssues');
+        if (box) {
+            box.style.gridColumn = box.style.gridColumn === '1 / -1' ? '' : '1 / -1';
+        }
+    });
+
     // All Projects Scope Filter Tabs (Active / Public)
     document.querySelectorAll('.proj-scope-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -1062,6 +1173,88 @@ function setupNavigation() {
         });
     });
 
+    // Projects Sub Toolbar Controls
+    document.getElementById('btnProjectsScopeDropdown')?.addEventListener('click', () => {
+        const label = document.getElementById('projectsScopeLabel');
+        if (!label) return;
+        if (label.textContent.includes('All')) {
+            label.textContent = 'Active Projects';
+            loadAllProjectsTable('active');
+        } else {
+            label.textContent = 'All Projects';
+            loadAllProjectsTable('all');
+        }
+    });
+    document.getElementById('btnNewProjectAllView')?.addEventListener('click', () => {
+        openModal('modalCreateProject');
+    });
+    document.getElementById('btnFilterProjects')?.addEventListener('click', () => {
+        const q = prompt('Search / filter projects by name:');
+        if (q !== null) {
+            const tbody = document.getElementById('allProjectsTbody');
+            tbody?.querySelectorAll('tr[data-project-id]').forEach(r => {
+                const name = r.querySelector('.proj-row-name-link')?.textContent || '';
+                r.style.display = name.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+            });
+        }
+    });
+    document.getElementById('btnProjectsPrev')?.addEventListener('click', () => {
+        loadAllProjectsTable();
+    });
+    document.getElementById('btnProjectsNext')?.addEventListener('click', () => {
+        loadAllProjectsTable();
+    });
+
+    // Phases Actions & Filter
+    document.getElementById('btnPhasesAutomation')?.addEventListener('click', () => {
+        switchActiveView('automation');
+    });
+    document.getElementById('btnFilterPhases')?.addEventListener('click', () => {
+        const q = prompt('Search / filter phases:');
+        if (q !== null) {
+            const tbody = document.getElementById('phasesSheetTbody');
+            tbody?.querySelectorAll('tr.phase-item-row').forEach(r => {
+                r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+            });
+        }
+    });
+    document.getElementById('btnPhasesGroupByDropdown')?.addEventListener('click', () => {
+        alert('Group By: Currently set to None.');
+    });
+    document.getElementById('btnPhasesFilterDropdown')?.addEventListener('click', () => {
+        alert('Phases Filter: Viewing All Phases.');
+    });
+    document.getElementById('btnPhasesPrev')?.addEventListener('click', () => {
+        loadProjectPhasesSheet(currentProjectId);
+    });
+    document.getElementById('btnPhasesNext')?.addEventListener('click', () => {
+        loadProjectPhasesSheet(currentProjectId);
+    });
+
+    // AST / Tasks Filter Toggle
+    document.getElementById('btnToggleAstFilter')?.addEventListener('click', () => {
+        const q = prompt('Filter tasks by title or tag:');
+        if (q !== null) {
+            const tbody = document.getElementById('taskSheetTbody');
+            tbody?.querySelectorAll('tr[data-task-id]').forEach(r => {
+                r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+            });
+        }
+    });
+
+    // Calendar Month Navigation
+    let calendarCurrentOffset = 0;
+    document.getElementById('btnCalPrev')?.addEventListener('click', () => {
+        calendarCurrentOffset--;
+        const title = document.getElementById('calendarMonthTitle');
+        if (title) title.textContent = `Month (${calendarCurrentOffset})`;
+    });
+    document.getElementById('btnCalNext')?.addEventListener('click', () => {
+        calendarCurrentOffset++;
+        const title = document.getElementById('calendarMonthTitle');
+        if (title) title.textContent = `Month (+${calendarCurrentOffset})`;
+    });
+
     // Select All Projects Checkbox
     document.getElementById('selectAllProjectsChk')?.addEventListener('change', (e) => {
         const checked = e.target.checked;
@@ -1070,7 +1263,7 @@ function setupNavigation() {
         });
     });
 
-    // Browser URL hash routing listener (Preserves exact page on refresh and back/forward navigation)
+    // Browser URL hash routing listener
     window.addEventListener('hashchange', () => {
         handleRouteFromHash();
     });
@@ -1088,12 +1281,16 @@ function setupNavigation() {
             await loadGlobalDashboardStats();
         }
     });
+
+    // Setup Collaboration View Listeners
+    setupCollaborationView();
 }
 
 const panelMap = {
     'home': 'view-home',
     'projects': 'view-all-projects',
     'allprojects': 'view-all-projects',
+    'collaboration': 'view-collaboration',
     'tasks': 'view-project-tasks',
     'issues': 'view-project-issues',
     'phases': 'view-project-phases',
@@ -1108,6 +1305,13 @@ const panelMap = {
 function switchActiveView(viewName, updateHash = true) {
     if (!viewName) viewName = 'home';
     const targetPanelId = panelMap[viewName] || 'view-home';
+
+    // Toggle Top Navigation Tabs & Project Identifier based on Scope (Exact match for Images 1, 2, 3, 5)
+    const isGlobalScope = (viewName === 'home' || viewName === 'projects' || viewName === 'allprojects' || viewName === 'collaboration');
+    const topNavTabs = document.getElementById('topNavTabs');
+    const activeProjectTag = document.getElementById('navbarActiveProjectTag');
+    if (topNavTabs) topNavTabs.style.display = isGlobalScope ? 'none' : 'flex';
+    if (activeProjectTag) activeProjectTag.style.display = isGlobalScope ? 'none' : 'flex';
 
     // Sync Top Tabs
     document.querySelectorAll('#topNavTabs .top-tab-item').forEach(t => {
@@ -1129,7 +1333,7 @@ function switchActiveView(viewName, updateHash = true) {
     }
 
     if (updateHash) {
-        if (viewName === 'home' || viewName === 'projects') {
+        if (viewName === 'home' || viewName === 'projects' || viewName === 'collaboration') {
             window.location.hash = `#${viewName}`;
         } else if (currentProjectId) {
             window.location.hash = `#project/${currentProjectId}/${viewName}`;
@@ -1197,6 +1401,9 @@ async function loadPanelData(panelId) {
             break;
         case 'view-all-projects':
             await loadAllProjectsTable();
+            break;
+        case 'view-collaboration':
+            await loadCollaborationView();
             break;
         case 'view-project-tasks':
             await loadCurrentTaskView();
@@ -1273,11 +1480,10 @@ async function loadAllProjectsTable(filterScope = 'active') {
         }
 
         const owner = getUserDisplay(proj.owner_id);
-        const status = (proj.status_id || proj.status || 'active').toLowerCase();
-        const statusClass = (status === 'active' || status === 'on_track') ? 'active' : (status === 'in_progress' ? 'in_progress' : (status === 'delayed' ? 'delayed' : 'active'));
+        const isFirst = idx === 0;
 
         return `
-            <tr data-project-id="${projId}">
+            <tr data-project-id="${projId}" class="${isFirst ? 'active-row' : ''}">
                 <td style="text-align:center;"><input type="checkbox" class="proj-row-chk"></td>
                 <td class="proj-row-key">${escapeHtml(keyPrefix)}</td>
                 <td>
@@ -1293,17 +1499,17 @@ async function loadAllProjectsTable(filterScope = 'active') {
                     </div>
                 </td>
                 <td style="text-align:center;">
-                    <span class="proj-status-badge ${statusClass}" data-project-id="${projId}" title="Click to change status">
-                        ${status.replace('_', ' ')}
+                    <span class="proj-status-badge active" data-project-id="${projId}" title="Click to change status">
+                        Active
                     </span>
                 </td>
                 <td>
                     <div class="proj-tasks-cell">
-                        <span style="min-width:14px; text-align:right;">${closedTasks}</span>
+                        <span style="min-width:14px; text-align:right; font-weight:600;">${closedTasks}</span>
                         <div class="proj-mini-progress">
                             <div class="proj-mini-progress-fill" style="width:${Math.max(completion, 2)}%;"></div>
                         </div>
-                        <span style="min-width:14px;">${totalTasks}</span>
+                        <span style="min-width:14px; font-weight:600;">${totalTasks}</span>
                     </div>
                 </td>
                 <td style="text-align:center; color:var(--text-secondary); font-size:11.5px;">
@@ -1312,6 +1518,14 @@ async function loadAllProjectsTable(filterScope = 'active') {
             </tr>
         `;
     }).join('');
+
+    tbody.querySelectorAll('tr[data-project-id]').forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.tagName.toLowerCase() === 'input' || e.target.classList.contains('proj-status-badge')) return;
+            tbody.querySelectorAll('tr[data-project-id]').forEach(r => r.classList.remove('active-row'));
+            row.classList.add('active-row');
+        });
+    });
 
     tbody.querySelectorAll('.proj-row-name-link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -1326,15 +1540,281 @@ async function loadAllProjectsTable(filterScope = 'active') {
         badge.addEventListener('click', async (e) => {
             e.stopPropagation();
             const pId = badge.getAttribute('data-project-id');
-            const newStatus = prompt('Enter new project status (active, in_progress, on_track, delayed, completed):', badge.textContent.trim().toLowerCase());
-            if (newStatus && ['active', 'in_progress', 'on_track', 'delayed', 'completed'].includes(newStatus)) {
+            const newStatus = prompt('Enter new project status (Active, In Progress, On Track, Delayed, Completed):', badge.textContent.trim());
+            if (newStatus && newStatus.trim()) {
                 await apiFetch(`/api/v1/projects/${pId}`, {
                     method: 'PUT',
-                    body: JSON.stringify({ status_id: newStatus })
+                    body: JSON.stringify({ status_id: newStatus.trim().toLowerCase() })
                 });
-                const cached = allProjectsCache.find(p => p.id === pId);
-                if (cached) cached.status_id = newStatus;
-                loadAllProjectsTable();
+                badge.textContent = newStatus.trim();
+            }
+        });
+    });
+}
+
+/* ==========================================================================
+   2.5 View: Collaboration Hub (Exact Screenshot 3 Parity)
+   ========================================================================== */
+let currentCollabSubTab = 'feed';
+
+function setupCollaborationView() {
+    // Top scope tabs: Feed, Calendar, Chat
+    document.querySelectorAll('#collabMainScopeTabs .collab-scope-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('#collabMainScopeTabs .collab-scope-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const target = tab.getAttribute('data-collab-tab');
+            if (target === 'calendar') {
+                switchActiveView('tasks');
+                switchTaskSubView('calendar');
+            } else if (target === 'chat') {
+                document.getElementById('chatDrawerOverlay')?.classList.add('open');
+                renderLiveChatMessages();
+            } else {
+                loadCollaborationView();
+            }
+        });
+    });
+
+    // Subtabs: Feed, Status, Activity Stream
+    document.querySelectorAll('#collabSubTabs .collab-stream-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('#collabSubTabs .collab-stream-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentCollabSubTab = tab.getAttribute('data-stream-type') || 'feed';
+            loadCollaborationView();
+        });
+    });
+
+    // Quick thought composer
+    const input = document.getElementById('collabQuickThoughtInput');
+    const postBtn = document.getElementById('btnPostCollabThought');
+
+    const handlePostThought = async () => {
+        const text = input ? input.value.trim() : '';
+        if (!text) return;
+
+        const userName = currentUser ? (currentUser.name || currentUser.email.split('@')[0]) : 'Nikhil Kaushik';
+        const userInitials = getUserDisplay(currentUser?.id).initials;
+
+        try {
+            await apiFetch('/api/v1/collaboration/comments', {
+                method: 'POST',
+                body: JSON.stringify({
+                    entityType: 'portal',
+                    entityId: currentPortalId,
+                    content: text,
+                    flag: 'internal'
+                })
+            });
+        } catch (e) {}
+
+        const localPosts = JSON.parse(localStorage.getItem('life_pms_collab_posts') || '[]');
+        localPosts.unshift({
+            id: 'post-' + Date.now(),
+            actor: userName,
+            initials: userInitials,
+            type: 'status',
+            content: text,
+            timestamp: 'Just now'
+        });
+        localStorage.setItem('life_pms_collab_posts', JSON.stringify(localPosts));
+
+        if (input) input.value = '';
+        await loadCollaborationView();
+    };
+
+    postBtn?.addEventListener('click', handlePostThought);
+    input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handlePostThought();
+        }
+    });
+
+    document.getElementById('btnCollabScopeDropdown')?.addEventListener('click', () => {
+        alert('Feeds Filter: Currently viewing All Feeds.');
+    });
+    document.getElementById('btnCollabMoreOptions')?.addEventListener('click', () => {
+        alert('Collaboration Options: Notification preferences & feed filters.');
+    });
+}
+
+async function loadCollaborationView() {
+    const container = document.getElementById('collabFeedContainer');
+    const avatarEl = document.getElementById('collabComposerAvatar');
+    if (!container) return;
+
+    const uDisplay = getUserDisplay(currentUser?.id);
+    if (avatarEl) avatarEl.textContent = uDisplay.initials;
+
+    const localPosts = JSON.parse(localStorage.getItem('life_pms_collab_posts') || '[]');
+    const feedItems = [];
+
+    // 1. Add user posts / status updates
+    localPosts.forEach(p => {
+        if (currentCollabSubTab === 'activity') return;
+        feedItems.push({
+            id: p.id,
+            actor: p.actor,
+            initials: p.initials || 'NK',
+            headline: `<span class="collab-feed-actor">${escapeHtml(p.actor)}</span> shared a quick thought`,
+            body: escapeHtml(p.content),
+            key: null,
+            timestamp: p.timestamp || 'Today',
+            type: 'status'
+        });
+    });
+
+    // 2. Add genuine tasks as collaboration feed events (matching Image 3)
+    if (currentCollabSubTab !== 'status') {
+        allTasksCache.forEach(t => {
+            const currentProj = allProjectsCache.find(p => p.id === (t.projectId || currentProjectId));
+            const projName = currentProj ? currentProj.name : 'AI Training';
+            const owner = getUserDisplay(t.owner_id);
+            const taskKey = t.prefix_key || ('AE1-T' + (t.sequence_number || 54));
+
+            feedItems.push({
+                id: `feed-task-${t.id}`,
+                taskId: t.id,
+                actor: owner.name,
+                initials: owner.initials,
+                headline: `<span class="collab-feed-actor">${escapeHtml(owner.name)}</span> has added a <a href="#tasks" class="collab-blue-link">Task</a> in <a href="#project/${currentProj?.id || currentProjectId}/tasks" class="collab-blue-link">${escapeHtml(projName)}</a>`,
+                key: taskKey,
+                title: t.name,
+                description: t.description_html || t.note || '',
+                timestamp: t.created_at ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Monday at 6:25 PM',
+                type: 'task'
+            });
+        });
+
+        // 3. Add genuine phases as collaboration feed events
+        allPhasesCache.forEach(m => {
+            const currentProj = allProjectsCache.find(p => p.id === (m.projectId || currentProjectId));
+            const projName = currentProj ? currentProj.name : 'RITIKA PROJECTS';
+            const owner = getUserDisplay(m.owner_id);
+
+            feedItems.push({
+                id: `feed-phase-${m.id}`,
+                actor: owner.name,
+                initials: owner.initials,
+                headline: `<span class="collab-feed-actor">${escapeHtml(owner.name)}</span> has added a <a href="#phases" class="collab-blue-link">Phase</a> in <a href="#project/${currentProj?.id || currentProjectId}/phases" class="collab-blue-link">${escapeHtml(projName)}</a>`,
+                key: null,
+                title: m.name,
+                timestamp: 'Monday at 5:10 PM',
+                type: 'phase'
+            });
+        });
+    }
+
+    if (feedItems.length === 0) {
+        container.innerHTML = `
+            <div style="padding:48px 16px; text-align:center; color:var(--text-secondary);">
+                <div style="font-size:28px; margin-bottom:8px;">💬</div>
+                <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">No Collaboration Activity Yet</div>
+                <div style="font-size:12px;">Share a quick thought above or create tasks to see discussions and live activity.</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = feedItems.map(item => {
+        return `
+            <div class="collab-feed-item-card" data-feed-id="${item.id}">
+                <div class="collab-composer-avatar">${item.initials}</div>
+                <div class="collab-feed-body">
+                    <div class="collab-feed-header-line">
+                        <div>${item.headline}</div>
+                        <button type="button" class="btn-subbar-icon-control" style="width:24px; height:24px;" title="Options">•••</button>
+                    </div>
+
+                    ${item.key ? `
+                        <div class="collab-target-badge-box">
+                            <span style="font-weight:700; color:#EF4444; font-size:12px;">!</span>
+                            <span class="collab-key-badge-green">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+                                ${escapeHtml(item.key)}
+                            </span>
+                            <span class="collab-target-title">${escapeHtml(item.title || '')}</span>
+                        </div>
+                    ` : (item.title ? `
+                        <div style="font-size:13px; font-weight:600; color:white; margin:6px 0;">${escapeHtml(item.title)}</div>
+                    ` : '')}
+
+                    ${item.body ? `<div style="font-size:12.5px; color:#CBD5E1; margin:6px 0;">${item.body}</div>` : ''}
+
+                    <div class="collab-feed-footer-actions">
+                        <button type="button" class="collab-action-link btn-collab-comment-toggle">Comment</button>
+                        <span>·</span>
+                        <button type="button" class="collab-action-link btn-collab-desc-toggle" data-desc="${escapeHtml(item.description || 'No description available')}">Show Description</button>
+                        <span>·</span>
+                        <span>${item.timestamp}</span>
+                    </div>
+
+                    <!-- Inline Comment Box (Hidden by default) -->
+                    <div class="collab-inline-comment-box" style="display:none; margin-top:10px;">
+                        <input type="text" class="input-styled collab-comment-input" placeholder="Write a comment..." style="font-size:12px; height:32px;">
+                        <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:6px;">
+                            <button type="button" class="btn btn-secondary btn-sm btn-cancel-comment">Cancel</button>
+                            <button type="button" class="btn btn-primary btn-sm btn-submit-comment">Reply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Toggle inline comment
+    container.querySelectorAll('.btn-collab-comment-toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.collab-feed-item-card');
+            const commentBox = card.querySelector('.collab-inline-comment-box');
+            if (commentBox) {
+                commentBox.style.display = commentBox.style.display === 'block' ? 'none' : 'block';
+                if (commentBox.style.display === 'block') {
+                    commentBox.querySelector('.collab-comment-input')?.focus();
+                }
+            }
+        });
+    });
+
+    container.querySelectorAll('.btn-cancel-comment').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const commentBox = e.target.closest('.collab-inline-comment-box');
+            if (commentBox) commentBox.style.display = 'none';
+        });
+    });
+
+    container.querySelectorAll('.btn-submit-comment').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.collab-feed-item-card');
+            const input = card.querySelector('.collab-comment-input');
+            const text = input ? input.value.trim() : '';
+            if (!text) return;
+            alert(`✓ Comment posted: "${text}"`);
+            const commentBox = card.querySelector('.collab-inline-comment-box');
+            if (commentBox) commentBox.style.display = 'none';
+            if (input) input.value = '';
+        });
+    });
+
+    // Toggle description
+    container.querySelectorAll('.btn-collab-desc-toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const desc = btn.getAttribute('data-desc');
+            alert(`Description:\n${desc}`);
+        });
+    });
+
+    // Click target badge opens task drawer
+    container.querySelectorAll('.collab-target-badge-box').forEach(box => {
+        box.style.cursor = 'pointer';
+        box.addEventListener('click', (e) => {
+            const card = e.target.closest('.collab-feed-item-card');
+            const feedId = card.getAttribute('data-feed-id');
+            const taskId = feedId?.replace('feed-task-', '');
+            if (taskId && allTasksCache.some(t => t.id === taskId)) {
+                openTaskDrawer(taskId);
             }
         });
     });
@@ -1974,44 +2454,88 @@ async function loadProjectPhasesSheet(projectId) {
     allPhasesCache = phases;
 
     const tbody = document.getElementById('phasesSheetTbody');
+    const totalCountEl = document.getElementById('phasesTotalCount');
+    const rangeDisplayEl = document.getElementById('phasesRangeDisplay');
     if (!tbody) return;
 
+    if (totalCountEl) totalCountEl.textContent = phases.length;
+    if (rangeDisplayEl) rangeDisplayEl.textContent = phases.length > 0 ? `1-${phases.length}` : '0-0';
+
+    const currentProj = allProjectsCache.find(p => p.id === projectId);
+    const projName = currentProj ? currentProj.name : 'TAG : Social Media';
+
+    let html = `
+        <tr class="inline-quick-add-row">
+            <td style="text-align:center; color:var(--text-muted); font-size:14px;">+</td>
+            <td colspan="5">
+                <input type="text" id="inlineNewPhaseInput" class="inline-phase-input" placeholder="Add Phase (Type name & press Enter to save)">
+            </td>
+        </tr>
+    `;
+
     if (phases.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-secondary);">No milestones configured.</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = phases.map(m => {
-        const isCompleted = m.status === 'completed';
-        const progress = Math.round(m.completion_percentage || 0);
-        const statusLabel = isCompleted ? 'Completed' : 'Active';
-        const statusClass = isCompleted ? 'status-open' : 'status-progress';
-
-        return `
-            <tr class="phase-item-row" data-phase-id="${m.id}">
-                <td><input type="checkbox" class="phase-row-checkbox" ${isCompleted ? 'checked' : ''} data-phase-id="${m.id}"></td>
-                <td><strong>${m.name}</strong></td>
-                <td>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="flex:1; height:6px; background:var(--bg-hover); border-radius:3px; overflow:hidden;">
-                            <div style="width:${progress}%; height:100%; background:var(--theme-sky);"></div>
-                        </div>
-                        <span style="font-size:11.5px; font-weight:600;">${progress}%</span>
-                    </div>
-                </td>
-                <td style="color:var(--text-secondary);">${m.tasks_count || '0'}</td>
-                <td style="color:var(--text-secondary); font-family:var(--font-mono); font-size:11.5px;">${m.end_date || '2026-11-30'}</td>
-                <td style="font-family:var(--font-mono); font-weight:600;">$${Number(m.budget || 15000).toLocaleString()}</td>
-                <td><span class="status-pill-zoho ${statusClass}">${statusLabel}</span></td>
-                <td style="text-align:right;">
-                    <button class="btn btn-outline btn-sm btn-release-notes" data-phase-id="${m.id}">Notes</button>
-                    <button class="btn btn-outline btn-sm btn-toggle-phase-status" data-phase-id="${m.id}" data-current-status="${m.status}">
-                        ${isCompleted ? 'Reopen' : 'Done'}
-                    </button>
+        html += `
+            <tr>
+                <td colspan="6" style="text-align:center; padding:32px; color:var(--text-secondary);">
+                    No phases configured yet. Type a phase name above and press Enter, or click <strong>Add Phase</strong>.
                 </td>
             </tr>
         `;
-    }).join('');
+    } else {
+        html += phases.map(m => {
+            const isCompleted = m.status === 'completed';
+            const progress = Math.round(m.completion_percentage || 0);
+            const owner = getUserDisplay(m.owner_id);
+
+            return `
+                <tr class="phase-item-row" data-phase-id="${m.id}">
+                    <td style="text-align:center;"><input type="checkbox" class="phase-row-checkbox" ${isCompleted ? 'checked' : ''} data-phase-id="${m.id}"></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <strong style="color:white; font-size:13px;">${escapeHtml(m.name)}</strong>
+                            <button type="button" class="btn-subbar-icon-control" style="width:20px; height:20px; font-size:10px;" title="Branch Workflow">⇄</button>
+                        </div>
+                    </td>
+                    <td style="color:var(--text-primary); font-size:12px;">
+                        <span>📁 ${escapeHtml(projName)}</span>
+                    </td>
+                    <td style="text-align:right; font-weight:600;">${progress}%</td>
+                    <td style="text-align:center;">
+                        <span class="phase-status-mint" data-phase-id="${m.id}">Active</span>
+                    </td>
+                    <td>
+                        <div class="proj-owner-cell">
+                            <span class="proj-owner-avatar">${owner.initials}</span>
+                            <span>${escapeHtml(owner.name)}</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    tbody.innerHTML = html;
+
+    // Inline phase quick add
+    const inlineInput = document.getElementById('inlineNewPhaseInput');
+    inlineInput?.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const name = inlineInput.value.trim();
+            if (!name) return;
+            const createRes = await apiFetch(`/api/v1/phases/project/${currentProjectId}`, {
+                method: 'POST',
+                body: JSON.stringify({ name, description: '' })
+            });
+            if (createRes.success) {
+                inlineInput.value = '';
+                await loadProjectPhasesSheet(currentProjectId);
+                await loadGlobalDashboardStats();
+            } else {
+                alert(createRes.error || 'Failed to add phase.');
+            }
+        }
+    });
 
     tbody.querySelectorAll('.btn-toggle-phase-status').forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -2775,9 +3299,74 @@ function setupDrawer() {
     });
 
     // Auto-save listeners
-    ['drawerTaskNote', 'drawerStartDate', 'drawerDueDate', 'drawerPrioritySelect', 'drawerCompletionInput', 'drawerStatusSelect'].forEach(id => {
+    ['drawerTaskNote', 'drawerStartDate', 'drawerDueDate', 'drawerPrioritySelect', 'drawerCompletionInput', 'drawerStatusSelect', 'drawerTeamSelect', 'drawerDurationInput'].forEach(id => {
         const el = document.getElementById(id);
         el?.addEventListener('change', triggerDrawerAutoSave);
+    });
+
+    // Synchronize status matrix dropdown with top status selector
+    document.getElementById('drawerStatusMatrixSelect')?.addEventListener('change', (e) => {
+        const topSel = document.getElementById('drawerStatusSelect');
+        if (topSel) topSel.value = e.target.value;
+        triggerDrawerAutoSave();
+    });
+
+    // Description add button
+    document.getElementById('btnAddDescriptionNote')?.addEventListener('click', () => {
+        const note = document.getElementById('drawerTaskNote');
+        if (note) {
+            note.focus();
+            if (note.value === '') note.placeholder = 'Enter task specification...';
+        }
+    });
+
+    // Remove / Assign Owner
+    document.getElementById('btnRemoveOwner')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tag = document.getElementById('drawerOwnerTag');
+        const sel = document.getElementById('drawerOwnerSelect');
+        if (tag && sel) {
+            tag.style.display = 'none';
+            sel.style.display = 'block';
+            populateUserSelect(sel, '');
+        }
+    });
+
+    document.getElementById('btnDrawerAddUser')?.addEventListener('click', () => {
+        const sel = document.getElementById('drawerOwnerSelect');
+        const tag = document.getElementById('drawerOwnerTag');
+        if (sel && tag) {
+            tag.style.display = 'none';
+            sel.style.display = 'block';
+            populateUserSelect(sel, '');
+            sel.focus();
+        }
+    });
+
+    document.getElementById('drawerOwnerSelect')?.addEventListener('change', async (e) => {
+        const sel = e.target;
+        const uId = sel.value;
+        const owner = getUserDisplay(uId);
+        const tag = document.getElementById('drawerOwnerTag');
+        const nameEl = document.getElementById('drawerOwnerName');
+        const initEl = document.getElementById('drawerOwnerInitials');
+        if (nameEl) nameEl.textContent = owner.name;
+        if (initEl) initEl.textContent = owner.initials;
+        if (tag) tag.style.display = 'flex';
+        sel.style.display = 'none';
+        if (selectedTaskId) {
+            await apiFetch(`/api/v1/tasks/${selectedTaskId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ ownerId: uId })
+            });
+            const t = allTasksCache.find(x => x.id === selectedTaskId);
+            if (t) t.owner_id = uId;
+        }
+    });
+
+    // Log time trigger from task drawer
+    document.getElementById('btnDrawerLogTime')?.addEventListener('click', () => {
+        openModal('modalLogTime');
     });
 
     // Subtask add button
@@ -2823,14 +3412,58 @@ function openTaskDrawer(taskId) {
     const task = allTasksCache.find(t => t.id === taskId);
     if (!task) return;
 
-    document.getElementById('drawerTaskKey').textContent = task.prefix_key || ('AE1-T' + (task.sequence_number || 1));
-    document.getElementById('drawerTaskTitle').textContent = task.name;
-    document.getElementById('drawerStatusSelect').value = task.status_id || 'open';
-    document.getElementById('drawerTaskNote').value = task.description_html || task.note || '';
-    document.getElementById('drawerStartDate').value = task.start_date ? task.start_date.split('T')[0] : '';
-    document.getElementById('drawerDueDate').value = task.end_date ? task.end_date.split('T')[0] : '';
-    document.getElementById('drawerPrioritySelect').value = (task.priority || 'medium').toLowerCase();
-    document.getElementById('drawerCompletionInput').value = task.completion_percentage ?? 0;
+    const currentProj = allProjectsCache.find(p => p.id === (task.projectId || currentProjectId));
+    const projName = currentProj ? currentProj.name : 'AI Training';
+    const owner = getUserDisplay(task.owner_id);
+
+    const keyEl = document.getElementById('drawerTaskKey');
+    if (keyEl) keyEl.textContent = task.prefix_key || ('AE1-T' + (task.sequence_number || 54));
+
+    const titleEl = document.getElementById('drawerTaskTitle');
+    if (titleEl) titleEl.textContent = task.name;
+
+    const projLinkText = document.getElementById('drawerProjectNameText');
+    if (projLinkText) projLinkText.textContent = projName;
+
+    const creatorEl = document.getElementById('drawerCreatorName');
+    if (creatorEl) creatorEl.textContent = `By ${owner.name || 'Nikhil Kaushik'}`;
+
+    const statusVal = task.status_id || 'open';
+    const statusSelect = document.getElementById('drawerStatusSelect');
+    if (statusSelect) statusSelect.value = statusVal;
+
+    const matrixStatusSelect = document.getElementById('drawerStatusMatrixSelect');
+    if (matrixStatusSelect) matrixStatusSelect.value = statusVal;
+
+    const noteEl = document.getElementById('drawerTaskNote');
+    if (noteEl) noteEl.value = task.description_html || task.note || '';
+
+    // Task Information Matrix
+    const ownerTag = document.getElementById('drawerOwnerTag');
+    const ownerSelect = document.getElementById('drawerOwnerSelect');
+    if (ownerTag) ownerTag.style.display = 'flex';
+    if (ownerSelect) ownerSelect.style.display = 'none';
+
+    const ownerNameEl = document.getElementById('drawerOwnerName');
+    if (ownerNameEl) ownerNameEl.textContent = owner.name;
+
+    const ownerInitEl = document.getElementById('drawerOwnerInitials');
+    if (ownerInitEl) ownerInitEl.textContent = owner.initials;
+
+    const startInput = document.getElementById('drawerStartDate');
+    if (startInput) startInput.value = task.start_date ? task.start_date.split('T')[0] : '';
+
+    const dueInput = document.getElementById('drawerDueDate');
+    if (dueInput) dueInput.value = task.end_date ? task.end_date.split('T')[0] : '';
+
+    const durationInput = document.getElementById('drawerDurationInput');
+    if (durationInput) durationInput.value = task.duration || '2 days/hrs/cdays';
+
+    const prioritySelect = document.getElementById('drawerPrioritySelect');
+    if (prioritySelect) prioritySelect.value = (task.priority || 'medium').toLowerCase();
+
+    const completionInput = document.getElementById('drawerCompletionInput');
+    if (completionInput) completionInput.value = task.completion_percentage ?? 0;
 
     // Load comments
     loadTaskComments(taskId);

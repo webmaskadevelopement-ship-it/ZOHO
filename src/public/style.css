@@ -3989,3 +3989,623 @@ button {
     border-radius: 3px;
     text-transform: capitalize;
 }
+
+/* ==========================================================================
+   EXACT ZOHO PROJECTS REFERENCE REPLICAS (Screenshots 1-5 Parity)
+   ========================================================================== */
+
+/* 1. Global Dashboard & Home (Reference Image 2) */
+.home-main-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+.dash-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.dash-scope-selector {
+    display: inline-flex;
+    align-items: center;
+}
+.dash-scope-title-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0078D4;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+.dash-scope-title-link:hover {
+    color: #38BDF8;
+    text-decoration: underline;
+}
+.btn-zoho-add-widget {
+    background-color: #0078D4;
+    color: #FFFFFF;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-zoho-add-widget:hover {
+    background-color: #106EBE;
+}
+.widget-drag-dots {
+    color: #64748B;
+    font-size: 12px;
+    cursor: grab;
+    user-select: none;
+}
+.widget-link-action {
+    color: #0078D4;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.12s;
+}
+.widget-link-action:hover {
+    text-decoration: underline;
+    color: #38BDF8;
+}
+
+/* 2. All Projects List (Reference Image 1) */
+.zoho-projects-data-table tbody tr.active-row,
+.zoho-projects-data-table tbody tr:first-child {
+    border-left: 3px solid #F59E0B !important;
+}
+.zoho-projects-data-table tbody tr {
+    border-left: 3px solid transparent;
+    transition: all 0.12s;
+}
+.proj-status-badge.active,
+.zoho-projects-data-table .proj-status-badge.active {
+    background-color: #20C997 !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border-radius: 4px !important;
+    padding: 5px 14px !important;
+    font-size: 12px !important;
+    text-transform: capitalize;
+    display: inline-block;
+}
+.proj-tasks-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+.proj-mini-progress {
+    width: 60px;
+    height: 14px;
+    background: #272D38;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.proj-mini-progress-fill {
+    height: 100%;
+    background-color: #20C997;
+    border-radius: 3px;
+}
+
+/* 3. Dedicated Collaboration View (Reference Image 3) */
+.collab-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+}
+.collab-main-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 10px 0;
+}
+.collab-scope-tabs {
+    display: flex;
+    gap: 24px;
+}
+.collab-scope-tab {
+    background: none;
+    border: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 8px 0;
+    position: relative;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+}
+.collab-scope-tab:hover {
+    color: var(--text-primary);
+}
+.collab-scope-tab.active {
+    color: #0078D4;
+    border-bottom: 2px solid #0078D4;
+}
+.collab-sub-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+}
+.collab-composer-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+}
+.collab-composer-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #E11D48;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.collab-composer-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #181C24;
+    border: 1px solid #272D38;
+    border-radius: 6px;
+    padding: 6px 12px;
+    max-width: 800px;
+}
+.collab-composer-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #FFFFFF;
+    font-size: 13px;
+}
+.collab-composer-input::placeholder {
+    color: #64748B;
+}
+.btn-collab-post {
+    background: #0078D4;
+    color: #FFFFFF;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.btn-collab-post:hover {
+    background: #106EBE;
+}
+.collab-stream-subtabs {
+    display: flex;
+    gap: 20px;
+    padding: 8px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+}
+.collab-stream-tab {
+    background: none;
+    border: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 6px 0;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.12s;
+}
+.collab-stream-tab.active {
+    color: #0078D4;
+    border-bottom: 2px solid #0078D4;
+}
+.collab-feed-container {
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 900px;
+}
+.collab-feed-item-card {
+    background: #181C24;
+    border: 1px solid #272D38;
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 14px;
+    transition: border-color 0.15s ease;
+}
+.collab-feed-item-card:hover {
+    border-color: #384252;
+}
+.collab-feed-body {
+    flex: 1;
+}
+.collab-feed-header-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+.collab-feed-actor {
+    font-weight: 600;
+    color: #FFFFFF;
+}
+.collab-blue-link {
+    color: #0078D4;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+.collab-blue-link:hover {
+    text-decoration: underline;
+}
+.collab-target-badge-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #11141B;
+    border: 1px solid #1E2430;
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin: 8px 0;
+}
+.collab-key-badge-green {
+    background: #16A34A;
+    color: #FFFFFF;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.collab-target-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+.collab-feed-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11.5px;
+    color: #64748B;
+    margin-top: 6px;
+}
+.collab-action-link {
+    color: #0078D4;
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 11.5px;
+}
+.collab-action-link:hover {
+    text-decoration: underline;
+}
+
+/* 4. Phases Table (Reference Image 5) */
+.phases-page-header {
+    padding: 16px 24px 0;
+    background: var(--bg-surface);
+}
+.phases-main-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 10px 0;
+}
+.phases-sub-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+}
+.phases-breadcrumb-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+.btn-breadcrumb-dropdown {
+    background: none;
+    border: none;
+    color: #0078D4;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.btn-breadcrumb-dropdown:hover {
+    text-decoration: underline;
+}
+.breadcrumb-arrow {
+    color: #64748B;
+    font-size: 14px;
+}
+.phases-table-container {
+    flex: 1;
+    overflow: auto;
+    background: var(--bg-surface);
+}
+.zoho-phases-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+.zoho-phases-data-table thead th {
+    background: var(--bg-surface-alt);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 11.5px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    border-right: 1px solid var(--border-subtle);
+    text-align: left;
+    white-space: nowrap;
+}
+.zoho-phases-data-table tbody tr {
+    border-bottom: 1px solid var(--border-subtle);
+    border-left: 3px solid #EF4444;
+    transition: background 0.12s;
+}
+.zoho-phases-data-table tbody tr:hover {
+    background-color: var(--bg-hover);
+}
+.zoho-phases-data-table tbody td {
+    padding: 10px 14px;
+    border-right: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+.zoho-phases-data-table tbody tr.inline-quick-add-row {
+    border-left: 3px solid transparent;
+    background: rgba(255, 255, 255, 0.02);
+}
+.phase-status-mint {
+    background-color: #20C997 !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-size: 12px;
+    display: inline-block;
+    text-align: center;
+}
+.inline-phase-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #FFFFFF;
+    font-size: 12.5px;
+}
+.inline-phase-input::placeholder {
+    color: #64748B;
+}
+
+/* 5. Zoho Suite Apps Launcher Popover */
+.zoho-apps-launcher-popover {
+    position: absolute;
+    top: 36px;
+    right: 0;
+    width: 280px;
+    background: #181C24;
+    border: 1px solid #2B3342;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    padding: 12px;
+}
+.apps-launcher-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #272D38;
+}
+.apps-launcher-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.app-launch-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 4px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #F8FAFC;
+    transition: background 0.12s;
+}
+.app-launch-tile:hover {
+    background: #252D3D;
+}
+.app-tile-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+}
+.app-tile-name {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* 6. Task Drawer Metadata Bar & Context Styling (Image 4) */
+.drawer-meta-proj-link {
+    color: #0078D4;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.drawer-meta-proj-link:hover {
+    text-decoration: underline;
+}
+.drawer-meta-icon {
+    cursor: pointer;
+    font-size: 13px;
+    color: #94A3B8;
+    transition: color 0.12s;
+}
+.drawer-meta-icon:hover {
+    color: #FFFFFF;
+}
+
+/* 7. Floating Help Button (Matching Reference Images 2, 3, 5) */
+.floating-help-btn {
+    position: fixed;
+    bottom: 44px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #F97316 0%, #E11D48 55%, #A21CAF 100%);
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4), 0 2px 6px rgba(0, 0, 0, 0.5);
+    border: none;
+    cursor: pointer;
+    z-index: 99;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.floating-help-btn:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 18px rgba(225, 29, 72, 0.6), 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* 8. Bottom System Status Bar & Dock (Matching Reference Images 1, 2, 3, 4, 5) */
+.bottom-system-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: #11151D;
+    border-top: 1px solid #1F2633;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    z-index: 100;
+}
+.bottom-bar-left, .bottom-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.bottom-bar-icon {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #94A3B8;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
+}
+.bottom-bar-icon:hover {
+    color: #FFFFFF;
+    background: #1E2533;
+}
+.bottom-bar-btn-chat {
+    background: #0078D4;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+}
+.bottom-bar-btn-chat:hover {
+    background: #106EBE;
+}
+
+/* 9. Sidebar Mini Dock (Matching Reference Images 1, 2, 3, 4, 5) */
+.sidebar-mini-dock {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 6px 4px;
+    border-top: 1px solid #1E2533;
+    background: #0C1017;
+}
+.dock-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: #94A3B8;
+    font-size: 10.5px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
+}
+.dock-item svg {
+    stroke: #94A3B8;
+}
+.dock-item:hover {
+    color: #FFFFFF;
+    background: #1A2230;
+}
+.dock-item:hover svg {
+    stroke: #FFFFFF;
+}
+
+

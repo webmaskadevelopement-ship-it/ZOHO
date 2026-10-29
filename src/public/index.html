@@ -125,9 +125,55 @@
                 </div>
 
                 <!-- 9-Dots App Launcher -->
-                <button type="button" class="icon-control-btn" id="btnAppLauncher" title="Zoho Apps Launcher">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
-                </button>
+                <div class="apps-launcher-wrapper" style="position:relative;">
+                    <button type="button" class="icon-control-btn" id="btnAppLauncher" title="Zoho Apps Launcher">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
+                    </button>
+                    <!-- Zoho Suite Apps Launcher Popover Dropdown -->
+                    <div class="zoho-apps-launcher-popover" id="zohoAppsLauncherMenu" style="display:none;">
+                        <div class="apps-launcher-header">
+                            <span>Zoho Suite Apps</span>
+                        </div>
+                        <div class="apps-launcher-grid">
+                            <a href="#projects" class="app-launch-tile active" data-app-nav="projects">
+                                <span class="app-tile-icon" style="background:#0284C7;">📊</span>
+                                <span class="app-tile-name">Projects</span>
+                            </a>
+                            <a href="#tasks" class="app-launch-tile" data-app-nav="tasks">
+                                <span class="app-tile-icon" style="background:#10B981;">📋</span>
+                                <span class="app-tile-name">Sprints</span>
+                            </a>
+                            <a href="#collaboration" class="app-launch-tile" data-app-nav="collaboration">
+                                <span class="app-tile-icon" style="background:#8B5CF6;">💬</span>
+                                <span class="app-tile-name">Cliq</span>
+                            </a>
+                            <a href="#team" class="app-launch-tile" data-app-nav="team">
+                                <span class="app-tile-icon" style="background:#EC4899;">👥</span>
+                                <span class="app-tile-name">People</span>
+                            </a>
+                            <a href="#finance" class="app-launch-tile" data-app-nav="finance">
+                                <span class="app-tile-icon" style="background:#F59E0B;">💼</span>
+                                <span class="app-tile-name">Books</span>
+                            </a>
+                            <a href="#reports" class="app-launch-tile" data-app-nav="reports">
+                                <span class="app-tile-icon" style="background:#6366F1;">📈</span>
+                                <span class="app-tile-name">Analytics</span>
+                            </a>
+                            <a href="#issues" class="app-launch-tile" data-app-nav="issues">
+                                <span class="app-tile-icon" style="background:#EF4444;">🛡️</span>
+                                <span class="app-tile-name">Desk</span>
+                            </a>
+                            <a href="#documents" class="app-launch-tile" data-app-nav="documents">
+                                <span class="app-tile-icon" style="background:#14B8A6;">📁</span>
+                                <span class="app-tile-name">WorkDrive</span>
+                            </a>
+                            <a href="#automation" class="app-launch-tile" data-app-nav="automation">
+                                <span class="app-tile-icon" style="background:#F97316;">⚡</span>
+                                <span class="app-tile-name">Flow</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -154,7 +200,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                         <span>Users</span>
                     </a>
-                    <a href="#documents" class="sidebar-item" data-view="documents" id="sideNavCollaboration">
+                    <a href="#collaboration" class="sidebar-item" data-view="collaboration" id="sideNavCollaboration">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                         <span>Collaboration</span>
                     </a>
@@ -244,19 +290,19 @@
                 <!-- VIEW 1: GLOBAL DASHBOARD (Executive Command Center) -->
                 <div id="view-home" class="viewport-panel active">
                     <div class="dashboard-header-bar">
-                        <div class="dash-title-dropdown">
-                            <h2 style="font-size:16px; font-weight:600; display:flex; align-items:center; gap:6px;">
-                                <span style="color:var(--theme-sky-dark); cursor:pointer;" id="dashScopeTitle">Global Dashboard ▾</span>
-                            </h2>
+                        <div class="dash-title-group">
+                            <h2 class="home-main-title">Home</h2>
+                            <div class="dash-scope-selector" id="btnDashScopeDropdown">
+                                <span class="dash-scope-title-link" id="dashScopeTitle">Global Dashboard ▾</span>
+                            </div>
                         </div>
                         <div class="dash-header-actions">
-                            <button class="btn btn-primary btn-sm" id="btnHeaderAddTaskHome">+ New Task</button>
-                            <button class="btn btn-outline btn-sm" id="btnHeaderAddIssueHome">+ Report Bug</button>
-                            <button class="btn btn-outline btn-sm" id="btnTriggerWorkerRunner" title="Trigger Recurrence, Reminders, and SLA cron">⚡ Run Workers</button>
+                            <button type="button" class="btn-zoho-add-widget" id="btnAddWidget">Add Widget</button>
+                            <button type="button" class="btn-subbar-icon-control" id="btnMoreDashOptions" title="Dashboard Options">•••</button>
                         </div>
                     </div>
 
-                    <!-- 6 Flat Minimal Stats Cards -->
+                    <!-- 6 Flat Minimal Stats Cards (Matching Screenshot 2) -->
                     <div class="stats-row-grid">
                         <div class="stat-card">
                             <span class="stat-label">Open Tasks</span>
@@ -284,38 +330,54 @@
                         </div>
                     </div>
 
-                    <!-- 4 Minimal Dashboard Widgets -->
+                    <!-- 2 Prominent Primary Widgets (Matching Screenshot 2) -->
                     <div class="dash-widgets-grid">
-                        <div class="widget-box">
+                        <div class="widget-box" id="widgetBoxMyTasks">
                             <div class="widget-box-header">
-                                <h3>My Tasks</h3>
-                                <span class="badge-subtle" id="widgetMyTasksCount">0</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="widget-drag-dots" title="Drag to reorder">⋮⋮</span>
+                                    <h3>My Tasks</h3>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <a href="#tasks" class="widget-link-action" id="btnMyTasksViewMore">View More</a>
+                                    <button type="button" class="widget-tool-icon" id="btnExpandMyTasks" title="Expand View">⤢</button>
+                                    <button type="button" class="widget-tool-icon" id="btnMyTasksOptions" title="Widget Options">•••</button>
+                                </div>
                             </div>
                             <div class="widget-list" id="widgetMyTasksList"></div>
                         </div>
 
-                        <div class="widget-box">
+                        <div class="widget-box" id="widgetBoxMyIssues">
                             <div class="widget-box-header">
-                                <h3>My Issues</h3>
-                                <span class="badge-subtle" id="widgetIssuesCount">0</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <h3>My Issues</h3>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <button type="button" class="widget-tool-icon" id="btnExpandMyIssues" title="Expand View">⤢</button>
+                                    <button type="button" class="widget-tool-icon" id="btnMyIssuesOptions" title="Widget Options">•••</button>
+                                </div>
                             </div>
                             <div class="widget-list" id="widgetMyIssuesList"></div>
                         </div>
+                    </div>
 
-                        <div class="widget-box">
-                            <div class="widget-box-header">
-                                <h3>My Work Items Due Today</h3>
-                                <span class="badge-subtle" id="widgetDueSoonCount">0</span>
+                    <div class="dash-secondary-widgets" id="dashSecondaryWidgets" style="display:none; margin-top:16px;">
+                        <div class="dash-widgets-grid">
+                            <div class="widget-box">
+                                <div class="widget-box-header">
+                                    <h3>My Work Items Due Today</h3>
+                                    <span class="badge-subtle" id="widgetDueSoonCount">0</span>
+                                </div>
+                                <div class="widget-list" id="widgetDueTodayList"></div>
                             </div>
-                            <div class="widget-list" id="widgetDueTodayList"></div>
-                        </div>
 
-                        <div class="widget-box">
-                            <div class="widget-box-header">
-                                <h3>My Overdue Work Items</h3>
-                                <span class="badge-subtle" id="widgetOverdueCount">0</span>
+                            <div class="widget-box">
+                                <div class="widget-box-header">
+                                    <h3>My Overdue Work Items</h3>
+                                    <span class="badge-subtle" id="widgetOverdueCount">0</span>
+                                </div>
+                                <div class="widget-list" id="widgetOverdueList"></div>
                             </div>
-                            <div class="widget-list" id="widgetOverdueList"></div>
                         </div>
                     </div>
 
@@ -461,6 +523,56 @@
                             <span class="page-range-text" id="projectsRangeDisplay">1-0</span>
                             <button type="button" class="page-nav-btn" id="btnProjectsNext" title="Next Page">›</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2.5: COLLABORATION (Exact Zoho Projects Screenshot 3 Parity) -->
+                <div id="view-collaboration" class="viewport-panel">
+                    <div class="collab-page-header">
+                        <div class="collab-header-left">
+                            <h2 class="collab-main-title">Collaboration</h2>
+                            <div class="collab-scope-tabs" id="collabMainScopeTabs">
+                                <button type="button" class="collab-scope-tab active" data-collab-tab="feed">Feed</button>
+                                <button type="button" class="collab-scope-tab" data-collab-tab="calendar">Calendar</button>
+                                <button type="button" class="collab-scope-tab" data-collab-tab="chat">Chat</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Toolbar with Scope & Actions -->
+                    <div class="collab-sub-toolbar">
+                        <div class="collab-sub-left">
+                            <div class="dropdown-scope-wrap">
+                                <button type="button" class="btn-scope-dropdown" id="btnCollabScopeDropdown">
+                                    <span id="collabScopeLabel">All Feeds</span>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="collab-sub-right">
+                            <button type="button" class="btn-subbar-icon-control" id="btnCollabMoreOptions" title="More Options">•••</button>
+                        </div>
+                    </div>
+
+                    <!-- Status Composer Card -->
+                    <div class="collab-composer-card">
+                        <div class="collab-composer-avatar" id="collabComposerAvatar">NK</div>
+                        <div class="collab-composer-input-wrap">
+                            <input type="text" id="collabQuickThoughtInput" class="collab-composer-input" placeholder="Share a quick thought and start a discussion.">
+                            <button type="button" class="btn-collab-post" id="btnPostCollabThought">Post</button>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Tabs: Feed | Status | Activity Stream -->
+                    <div class="collab-stream-subtabs" id="collabSubTabs">
+                        <button type="button" class="collab-stream-tab active" data-stream-type="feed">Feed</button>
+                        <button type="button" class="collab-stream-tab" data-stream-type="status">Status</button>
+                        <button type="button" class="collab-stream-tab" data-stream-type="activity">Activity Stream</button>
+                    </div>
+
+                    <!-- Live Feed Items Container -->
+                    <div class="collab-feed-container" id="collabFeedContainer">
+                        <!-- Populated dynamically with genuine user activities and feed posts -->
                     </div>
                 </div>
 
@@ -629,33 +741,99 @@
                     </div>
                 </div>
 
-                <!-- VIEW 4: PHASES & MILESTONES (PDF Module 3) -->
+                <!-- VIEW 4: PHASES (Exact Zoho Projects Screenshot 5 Parity) -->
                 <div id="view-project-phases" class="viewport-panel">
-                    <div class="project-top-header">
-                        <div class="project-headline">
-                            <h1 id="phasesProjectTitle">Milestone Deliverables & Sequential Chaining</h1>
-                            <div class="project-header-icons">
-                                <button class="btn btn-primary btn-sm" id="btnAddPhaseModalTrigger">+ Add Milestone</button>
-                            </div>
+                    <div class="phases-page-header">
+                        <div class="phases-header-left">
+                            <h2 class="phases-main-title" id="phasesProjectTitle">Phases</h2>
                         </div>
                     </div>
 
-                    <div class="sheet-table-wrapper">
-                        <table class="tasks-sheet-table" id="phasesSheetTable">
+                    <!-- Sub Toolbar with Grouping & Actions -->
+                    <div class="phases-sub-toolbar">
+                        <div class="phases-sub-left">
+                            <div class="phases-breadcrumb-filter">
+                                <button type="button" class="btn-breadcrumb-dropdown" id="btnPhasesGroupByDropdown">
+                                    <span>Group By None</span>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                                <span class="breadcrumb-arrow">›</span>
+                                <button type="button" class="btn-breadcrumb-dropdown active" id="btnPhasesFilterDropdown">
+                                    <span>All Phases</span>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="phases-sub-right">
+                            <div class="view-switch-btn-group">
+                                <button type="button" class="btn-subbar-control" title="List View">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                    <span>List ▾</span>
+                                </button>
+                            </div>
+                            <button type="button" class="btn-subbar-control" id="btnPhasesAutomation" title="Phase Automation & Workflows">
+                                <span>Automation</span>
+                            </button>
+                            <button type="button" class="btn-zoho-new-project" id="btnAddPhaseModalTrigger">
+                                <span>Add Phase</span>
+                            </button>
+                            <button type="button" class="btn-subbar-icon-control" id="btnFilterPhases" title="Filter Phases">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            </button>
+                            <button type="button" class="btn-subbar-icon-control" id="btnPhasesMoreOptions" title="More Options">•••</button>
+                        </div>
+                    </div>
+
+                    <!-- Phases Table Container -->
+                    <div class="phases-table-container">
+                        <table class="zoho-phases-data-table" id="phasesSheetTable">
                             <thead>
                                 <tr>
-                                    <th style="width: 32px;"><input type="checkbox" id="selectAllPhases"></th>
-                                    <th>Milestone Name</th>
-                                    <th style="width: 220px;">Progress</th>
-                                    <th style="width: 140px;">Tasks (Closed/Total)</th>
-                                    <th style="width: 130px;">Timeline</th>
-                                    <th style="width: 110px;">Budget</th>
-                                    <th style="width: 110px;">Status</th>
-                                    <th style="width: 130px; text-align:right;">Actions</th>
+                                    <th style="width: 40px; text-align: center;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:var(--text-muted);"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            <span>Phase Name</span>
+                                        </div>
+                                    </th>
+                                    <th style="width: 240px;">
+                                        <div class="th-content">
+                                            <span style="font-size:12px; margin-right:4px;">📁</span>
+                                            <span>Project</span>
+                                        </div>
+                                    </th>
+                                    <th style="width: 90px; text-align: right;">%</th>
+                                    <th style="width: 140px; text-align: center;">
+                                        <div class="th-content" style="justify-content:center;">
+                                            <span>Status</span>
+                                        </div>
+                                    </th>
+                                    <th style="width: 180px;">
+                                        <div class="th-content">
+                                            <span style="font-size:12px; margin-right:4px;">👤</span>
+                                            <span>Owner</span>
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody id="phasesSheetTbody"></tbody>
+                            <tbody id="phasesSheetTbody">
+                                <!-- Populated dynamically from genuine database records with inline add quick row -->
+                            </tbody>
                         </table>
+                    </div>
+
+                    <!-- Phases Table Footer Pagination -->
+                    <div class="projects-table-footer">
+                        <div class="footer-count-info">
+                            <span>Total Count: </span>
+                            <span id="phasesTotalCount" style="font-weight:600;">0</span>
+                        </div>
+                        <div class="footer-pagination-controls">
+                            <button type="button" class="page-nav-btn" id="btnPhasesPrev" title="Previous Page">‹</button>
+                            <span class="page-range-text" id="phasesRangeDisplay">1-0</span>
+                            <button type="button" class="page-nav-btn" id="btnPhasesNext" title="Next Page">›</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1094,68 +1272,100 @@
 
                     <div class="drawer-body">
                         <div class="drawer-title-area">
-                            <h2 class="drawer-task-title" id="drawerTaskTitle" contenteditable="true" spellcheck="false">Stitch AI for Website Code</h2>
+                            <h2 class="drawer-task-title" id="drawerTaskTitle" contenteditable="true" spellcheck="false">Task Name</h2>
                             
                             <div class="drawer-meta-bar">
                                 <span class="meta-tag-flag" id="drawerFlagBadge">Internal</span>
                                 <span class="meta-separator">|</span>
                                 <span class="meta-creator" id="drawerCreatorName">By Nikhil Kaushik</span>
                                 <span class="meta-separator">|</span>
-                                <div class="drawer-timer-chip">
-                                    <span class="timer-clock-icon">⏱</span>
-                                    <span class="timer-time" id="drawerTimerDisplay">00:00:00</span>
-                                    <button class="timer-play-btn" id="btnDrawerTimerToggle">▶</button>
-                                </div>
+                                <span class="drawer-meta-proj-link" id="drawerProjectLink">📁 <span id="drawerProjectNameText">AI Training</span></span>
+                                <span class="meta-separator">|</span>
+                                <span class="drawer-meta-icon" title="Comments">💬</span>
+                                <span class="drawer-meta-icon" title="Attachments">📎</span>
+                                <span class="drawer-meta-icon" title="Information">ℹ</span>
                             </div>
                         </div>
 
-                        <!-- Status Indicator Selector -->
+                        <!-- Status Indicator Selector (Matching Screenshot 4) -->
                         <div class="drawer-status-block">
                             <div class="drawer-status-select-wrap">
                                 <span class="status-indicator-dot" id="drawerStatusDot"></span>
                                 <select id="drawerStatusSelect" class="drawer-status-select">
-                                    <option value="open">Open</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="in_review">In Review</option>
-                                    <option value="completed">Completed</option>
+                                    <option value="open">● Open</option>
+                                    <option value="in_progress">● In Progress</option>
+                                    <option value="in_review">● In Review</option>
+                                    <option value="completed">● Completed</option>
                                 </select>
                             </div>
                             <span class="drawer-status-sublabel">STATUS</span>
                         </div>
 
-                        <!-- Description Accordion -->
+                        <!-- Description Accordion (Matching Screenshot 4) -->
                         <div class="drawer-collapsible-section">
                             <div class="section-accordion-header" id="headerDescToggle">
                                 <div style="display:flex; align-items:center; gap:6px;">
-                                    <span class="accordion-chevron">⌄</span>
+                                    <span class="accordion-chevron">▾</span>
                                     <span class="accordion-title">Description</span>
                                 </div>
-                                <button type="button" class="btn-section-add" id="btnAddDescriptionNote">+</button>
+                                <button type="button" class="btn-section-add" id="btnAddDescriptionNote" title="Add Note">+</button>
                             </div>
                             <div class="section-accordion-body" id="bodyDesc">
-                                <textarea id="drawerTaskNote" class="drawer-desc-textarea" rows="3" placeholder="Enter task specification..."></textarea>
+                                <textarea id="drawerTaskNote" class="drawer-desc-textarea" rows="3" placeholder="NO DESCRIPTION AVAILABLE"></textarea>
                             </div>
                         </div>
 
-                        <!-- Task Information Matrix -->
+                        <!-- Task Information Matrix (Matching Screenshot 4) -->
                         <div class="drawer-collapsible-section">
                             <div class="section-accordion-header">
                                 <div style="display:flex; align-items:center; gap:6px;">
-                                    <span class="accordion-chevron">⌄</span>
+                                    <span class="accordion-chevron">▾</span>
                                     <span class="accordion-title">Task Information</span>
                                 </div>
                             </div>
                             <div class="section-accordion-body">
                                 <div class="info-field-table">
                                     <div class="info-field-row">
+                                        <label class="info-field-label">Associated Team</label>
+                                        <div class="info-field-control">
+                                            <select id="drawerTeamSelect" class="info-inline-select">
+                                                <option value="core">Core Engineering</option>
+                                                <option value="design">Product Design</option>
+                                                <option value="marketing">Growth & Media</option>
+                                                <option value="agency">Agency Operations</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-field-row">
                                         <label class="info-field-label">Owner</label>
                                         <div class="info-field-control">
                                             <div class="owner-pill-tag" id="drawerOwnerTag">
                                                 <span class="owner-pill-avatar" id="drawerOwnerInitials">NK</span>
                                                 <span class="owner-pill-name" id="drawerOwnerName">Nikhil Kaushik</span>
-                                                <button type="button" class="owner-pill-remove" id="btnRemoveOwner">✕</button>
+                                                <button type="button" class="owner-pill-remove" id="btnRemoveOwner" title="Remove Owner">✕</button>
                                             </div>
                                             <select id="drawerOwnerSelect" class="info-inline-select" style="display:none;"></select>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-field-row">
+                                        <label class="info-field-label">Work Hours</label>
+                                        <div class="info-field-control" style="display:flex; align-items:center; gap:8px;">
+                                            <span style="font-family:var(--font-mono); font-size:12px; font-weight:600;" id="drawerWorkHoursDisplay">00:00</span>
+                                            <button type="button" class="btn-text-action" id="btnDrawerLogTime" style="font-size:11px; color:var(--theme-sky);">+ Log Time</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-field-row">
+                                        <label class="info-field-label">Status</label>
+                                        <div class="info-field-control">
+                                            <select id="drawerStatusMatrixSelect" class="info-inline-select">
+                                                <option value="open">● Open</option>
+                                                <option value="in_progress">● In Progress</option>
+                                                <option value="in_review">● In Review</option>
+                                                <option value="completed">● Completed</option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -1174,15 +1384,9 @@
                                     </div>
 
                                     <div class="info-field-row">
-                                        <label class="info-field-label">Priority</label>
-                                        <div class="info-field-control">
-                                            <select id="drawerPrioritySelect" class="info-inline-select">
-                                                <option value="none">None</option>
-                                                <option value="low">Low</option>
-                                                <option value="medium">Medium</option>
-                                                <option value="high">High</option>
-                                                <option value="urgent">Urgent</option>
-                                            </select>
+                                        <label class="info-field-label">Duration <span title="Estimated working duration">ℹ</span></label>
+                                        <div class="info-field-control" style="display:flex; align-items:center; gap:8px;">
+                                            <input type="text" id="drawerDurationInput" class="info-inline-input" style="width:140px;" placeholder="2 days/hrs/cdays">
                                         </div>
                                     </div>
 
@@ -1191,6 +1395,7 @@
                                         <div class="info-field-control" style="display:flex; align-items:center; gap:8px;">
                                             <input type="number" id="drawerCompletionInput" class="info-inline-input" style="width:60px;" min="0" max="100">
                                             <span style="font-weight:600; font-size:12px;">%</span>
+                                            <span id="drawerSaveStatus" style="font-size:11px; margin-left:auto;"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -2173,6 +2378,46 @@
                     </div>
                     <div class="modal-dialog-footer">
                         <button type="button" class="btn btn-secondary" data-close="modalShareLink">Done</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: ADD DASHBOARD WIDGETS -->
+            <div id="modalAddWidget" class="modal-backdrop">
+                <div class="modal-dialog" style="max-width: 500px;">
+                    <div class="modal-dialog-header">
+                        <h3>Dashboard Widgets</h3>
+                        <button type="button" class="btn-close-modal" data-close="modalAddWidget">✕</button>
+                    </div>
+                    <div class="modal-dialog-body" style="gap:12px;">
+                        <p style="font-size:12px; color:var(--text-secondary);">Customize and toggle visibility of widgets on your Global Dashboard.</p>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <label style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-surface-alt); border-radius:6px; cursor:pointer;">
+                                <div>
+                                    <div style="font-weight:600; font-size:13px;">My Tasks Widget</div>
+                                    <div style="font-size:11.5px; color:var(--text-secondary);">Direct listing of tasks allocated to your account</div>
+                                </div>
+                                <input type="checkbox" id="chkWidgetMyTasks" checked>
+                            </label>
+                            <label style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-surface-alt); border-radius:6px; cursor:pointer;">
+                                <div>
+                                    <div style="font-weight:600; font-size:13px;">My Issues Widget</div>
+                                    <div style="font-size:11.5px; color:var(--text-secondary);">Assigned bugs, defects and issues tracker</div>
+                                </div>
+                                <input type="checkbox" id="chkWidgetMyIssues" checked>
+                            </label>
+                            <label style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-surface-alt); border-radius:6px; cursor:pointer;">
+                                <div>
+                                    <div style="font-weight:600; font-size:13px;">Work Items Due Today & Overdue</div>
+                                    <div style="font-size:11.5px; color:var(--text-secondary);">Urgent milestone targets and scheduled deliverables</div>
+                                </div>
+                                <input type="checkbox" id="chkWidgetSecondary">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-dialog-footer">
+                        <button type="button" class="btn btn-secondary" data-close="modalAddWidget">Close</button>
+                        <button type="button" class="btn btn-primary" id="btnSaveWidgetLayout">Save Preferences</button>
                     </div>
                 </div>
             </div>
