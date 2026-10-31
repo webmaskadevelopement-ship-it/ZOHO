@@ -113,3 +113,4 @@ if (!code.includes('saveInAppRequestToFirestore')) {
 if (isCRLF) code = code.replace(/\n/g, '\r\n');
 fs.writeFileSync(targetPath, code, 'utf8');
 console.log('Done patching firebase-auth-client.js');
+

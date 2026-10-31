@@ -475,3 +475,4 @@ if (code.includes(oldApprovalsSection)) {
 if (isCRLF) code = code.replace(/\n/g, '\r\n');
 fs.writeFileSync(targetPath, code, 'utf8');
 console.log('Done.');
+

@@ -1,3 +1,4 @@
+
 /**
  * Netlify Serverless API Function
  * Serves backend API routes (email invitation dispatch, SMTP diagnostic, invite verification, auth, health check)
@@ -88,7 +89,7 @@ function getEmailCredentials() {
                 backupUser = backupUser || bundled.GMAIL_BACKUP_USER || bundled.SMTP_BACKUP_USER;
                 backupPass = backupPass || bundled.GMAIL_BACKUP_APP_PASSWORD || bundled.SMTP_BACKUP_PASS;
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     // Fallback: Check local .env file if running in an environment with filesystem access
@@ -108,7 +109,7 @@ function getEmailCredentials() {
                 if (backupUserMatch && backupUserMatch[1]) backupUser = backupUser || backupUserMatch[1].trim();
                 if (backupPassMatch && backupPassMatch[1]) backupPass = backupPass || backupPassMatch[1].trim();
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     return {
@@ -624,7 +625,7 @@ exports.handler = async (event, context) => {
                             role: decoded.role || 'employee'
                         };
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
             return null;
         }
@@ -659,233 +660,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Serverless File/Memory-Backed Store for Resilient Persistence across Deployed Invocations
-        const STORE_FILE = path.join('/tmp', 'life_pms_serverless_data.json');
-        function getStore() {
-            try {
-                if (fs.existsSync(STORE_FILE)) {
-                    return JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
-                }
-            } catch (e) {}
-            return {
-                projects: global._serverlessProjects || [],
-                tasks: global._serverlessTasks || [],
-                taskLists: global._serverlessTaskLists || [],
-                issues: global._serverlessIssues || [],
-                phases: global._serverlessPhases || [],
-                requests: global._serverlessRequests || []
-            };
-        }
-
-        function saveStore(store) {
-            global._serverlessProjects = store.projects;
-            global._serverlessTasks = store.tasks;
-            global._serverlessTaskLists = store.taskLists;
-            global._serverlessIssues = store.issues;
-            global._serverlessPhases = store.phases;
-            global._serverlessRequests = store.requests;
-            try {
-                fs.writeFileSync(STORE_FILE, JSON.stringify(store), 'utf8');
-            } catch (e) {}
-        }
-
-        const store = getStore();
-
-        // Route 6.3: Projects (GET /api/v1/projects, POST /api/v1/projects)
-        if (cleanPath.includes('/projects')) {
-            const authUser = getAuthUser(event);
-
-            if (event.httpMethod === 'POST') {
-                const newProject = {
-                    id: 'proj-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
-                    name: body.name || 'New Project',
-                    key_prefix: body.keyPrefix || body.key_prefix || 'PRJ',
-                    keyPrefix: body.keyPrefix || body.key_prefix || 'PRJ',
-                    description: body.description || '',
-                    is_public: body.isPublic !== undefined ? (body.isPublic ? 1 : 0) : 1,
-                    isPublic: body.isPublic !== undefined ? (body.isPublic ? 1 : 0) : 1,
-                    owner_id: authUser?.id || 'usr-admin',
-                    ownerId: authUser?.id || 'usr-admin',
-                    member_ids: [authUser?.id || 'usr-admin'],
-                    portal_id: 'portal-demo-zoho',
-                    start_date: body.startDate || new Date().toISOString().split('T')[0],
-                    end_date: body.endDate || '',
-                    created_at: new Date().toISOString(),
-                    stats: { openTaskCount: 0, closedTaskCount: 0, completionPercentage: 0 }
-                };
-
-                store.projects.unshift(newProject);
-
-                // Auto-create default task lists for the new project
-                store.taskLists.push(
-                    { id: 'list-' + newProject.id + '-internal', projectId: newProject.id, name: 'General (Internal)', flag: 'internal' },
-                    { id: 'list-' + newProject.id + '-external', projectId: newProject.id, name: 'General (Client Visible)', flag: 'external' }
-                );
-
-                saveStore(store);
-
-                return {
-                    statusCode: 201,
-                    headers: CORS_HEADERS,
-                    body: JSON.stringify({ success: true, data: newProject })
-                };
-            }
-
-            // GET Projects (Scoped by user permissions)
-            let projs = store.projects;
-            if (authUser && authUser.role !== 'admin') {
-                projs = projs.filter(p => {
-                    const isPub = p.is_public === 1 || p.isPublic === 1 || p.isPublic === true;
-                    const isOwner = p.owner_id === authUser.id || p.ownerId === authUser.id || p.owner_email === authUser.email;
-                    const members = Array.isArray(p.member_ids) ? p.member_ids : [];
-                    const isMember = members.includes(authUser.id) || members.includes(authUser.email);
-                    return isPub || isOwner || isMember;
-                });
-            }
-
-            return {
-                statusCode: 200,
-                headers: CORS_HEADERS,
-                body: JSON.stringify({
-                    success: true,
-                    count: projs.length,
-                    data: projs
-                })
-            };
-        }
-
-        // Route 6.4: Tasks (GET /api/v1/tasks/project/:id, POST /api/v1/tasks/project/:id, PATCH quick-status)
-        if (cleanPath.includes('/tasks')) {
-            const authUser = getAuthUser(event);
-
-            // PATCH quick-status
-            if (cleanPath.includes('/quick-status')) {
-                const parts = cleanPath.split('/');
-                const taskId = parts[parts.indexOf('tasks') + 1];
-                const task = store.tasks.find(t => t.id === taskId);
-                if (task) {
-                    task.is_completed = body.isCompleted ? 1 : 0;
-                    task.status_id = body.isCompleted ? 'completed' : 'open';
-                    saveStore(store);
-                }
-                return {
-                    statusCode: 200,
-                    headers: CORS_HEADERS,
-                    body: JSON.stringify({ success: true })
-                };
-            }
-
-            // POST /api/v1/tasks/project/:id
-            if (event.httpMethod === 'POST') {
-                const parts = cleanPath.split('/');
-                const projId = parts[parts.indexOf('tasks') + 2] || body.projectId;
-                const count = store.tasks.length + 1;
-                const newTask = {
-                    id: 'task-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
-                    projectId: projId,
-                    project_id: projId,
-                    name: body.name || 'New Task',
-                    description: body.note || body.description || '',
-                    priority: body.priority || 'medium',
-                    status_id: 'open',
-                    is_completed: 0,
-                    start_date: body.startDate || new Date().toISOString().split('T')[0],
-                    end_date: body.endDate || '',
-                    taskListId: body.taskListId || 'list-' + projId + '-internal',
-                    task_list_id: body.taskListId || 'list-' + projId + '-internal',
-                    owner_ids: body.ownerIds?.length ? body.ownerIds : (authUser?.id ? [authUser.id] : []),
-                    prefix_key: 'T-' + (40 + count),
-                    created_at: new Date().toISOString()
-                };
-
-                store.tasks.unshift(newTask);
-                saveStore(store);
-
-                return {
-                    statusCode: 201,
-                    headers: CORS_HEADERS,
-                    body: JSON.stringify({ success: true, data: newTask })
-                };
-            }
-
-            // GET /api/v1/tasks/project/:id
-            const parts = cleanPath.split('/');
-            const targetProjId = parts[parts.indexOf('tasks') + 2];
-            let projTasks = store.tasks;
-            if (targetProjId) {
-                projTasks = projTasks.filter(t => t.projectId === targetProjId || t.project_id === targetProjId || (!t.projectId && !t.project_id));
-            }
-
-            return {
-                statusCode: 200,
-                headers: CORS_HEADERS,
-                body: JSON.stringify({
-                    success: true,
-                    count: projTasks.length,
-                    data: projTasks
-                })
-            };
-        }
-
-        // Route 6.5: Task Lists (GET /api/v1/task-lists/project/:id)
-        if (cleanPath.includes('/task-lists')) {
-            const parts = cleanPath.split('/');
-            const projId = parts[parts.indexOf('task-lists') + 2];
-            let lists = store.taskLists.filter(tl => !projId || tl.projectId === projId);
-            if (lists.length === 0) {
-                lists = [
-                    { id: 'list-' + (projId || 'gen') + '-internal', projectId: projId, name: 'General (Internal)', flag: 'internal' },
-                    { id: 'list-' + (projId || 'gen') + '-external', projectId: projId, name: 'General (Client Visible)', flag: 'external' }
-                ];
-            }
-            return {
-                statusCode: 200,
-                headers: CORS_HEADERS,
-                body: JSON.stringify({ success: true, data: lists })
-            };
-        }
-
-        // Route 6.6: Phases (GET /api/v1/phases/project/:id)
-        if (cleanPath.includes('/phases')) {
-            const parts = cleanPath.split('/');
-            const projId = parts[parts.indexOf('phases') + 2];
-            let phases = store.phases.filter(p => !projId || p.projectId === projId);
-            return {
-                statusCode: 200,
-                headers: CORS_HEADERS,
-                body: JSON.stringify({ success: true, data: phases })
-            };
-        }
-
-        // Route 6.7: Issues (GET /api/v1/issues, POST /api/v1/issues)
-        if (cleanPath.includes('/issues')) {
-            if (event.httpMethod === 'POST') {
-                const newIssue = {
-                    id: 'issue-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
-                    projectId: body.projectId,
-                    title: body.title || 'Reported Issue',
-                    severity: body.severity || 'medium',
-                    description: body.description || '',
-                    status: 'open',
-                    prefix_key: 'BUG-' + (store.issues.length + 101),
-                    created_at: new Date().toISOString()
-                };
-                store.issues.unshift(newIssue);
-                saveStore(store);
-                return {
-                    statusCode: 201,
-                    headers: CORS_HEADERS,
-                    body: JSON.stringify({ success: true, data: newIssue })
-                };
-            }
-            return {
-                statusCode: 200,
-                headers: CORS_HEADERS,
-                body: JSON.stringify({ success: true, count: store.issues.length, data: store.issues })
-            };
-        }
-
-        // User Directory & Matching Helpers for In-App Requests
+        // Authorized Workspace Users Directory (PDF Specifications)
         const PDF_USERS_DIRECTORY = [
             { id: 'efac5612-9ff8-4f2a-884d-46ff5e470584', uuid: 'efac5612-9ff8-4f2a-884d-46ff5e470584', slugId: 'usr-ravi', name: 'Ravi Bhadoria', username: 'ravi.bhadoria', email: 'ravi.bhadoria@zoho.com', role: 'employee', department: 'Development' },
             { id: 'cf3817b6-562e-4c65-9d17-b4eb1ada5cd8', uuid: 'cf3817b6-562e-4c65-9d17-b4eb1ada5cd8', slugId: 'usr-ananya', name: 'Ananya Gupta', username: 'ananya.gupta', email: 'ananya.gupta@zoho.com', role: 'employee', department: 'UI/UX Design' },
@@ -912,6 +687,45 @@ exports.handler = async (event, context) => {
                 u.username.toLowerCase() === clean ||
                 u.name.toLowerCase() === clean
             );
+        }
+
+        function isUserProjectOwnerOrMember(proj, user) {
+            if (!proj || !user) return false;
+            const uId = String(user.id || user.userId || '').toLowerCase();
+            const uEmail = String(user.email || '').toLowerCase().trim();
+            const uName = String(user.username || '').toLowerCase().trim();
+
+            const targetUser = findPdfUser(uId) || findPdfUser(uEmail) || findPdfUser(uName);
+            const validIds = new Set([uId, uEmail, uName].filter(Boolean));
+            if (targetUser) {
+                validIds.add(targetUser.id.toLowerCase());
+                validIds.add(targetUser.uuid.toLowerCase());
+                validIds.add(targetUser.slugId.toLowerCase());
+                validIds.add(targetUser.email.toLowerCase());
+                validIds.add(targetUser.username.toLowerCase());
+            }
+
+            const pOwnerId = String(proj.owner_id || proj.ownerId || '').toLowerCase();
+            const pOwnerEmail = String(proj.owner_email || proj.ownerEmail || '').toLowerCase();
+            const pOwnerUser = String(proj.owner_username || proj.ownerUsername || '').toLowerCase();
+
+            if (pOwnerId && validIds.has(pOwnerId)) return true;
+            if (pOwnerEmail && validIds.has(pOwnerEmail)) return true;
+            if (pOwnerUser && validIds.has(pOwnerUser)) return true;
+
+            // Check members
+            let members = [];
+            try {
+                members = Array.isArray(proj.member_ids) ? proj.member_ids : (Array.isArray(proj.memberIds) ? proj.memberIds : (typeof proj.member_ids === 'string' ? JSON.parse(proj.member_ids || '[]') : []));
+            } catch (e) { members = []; }
+
+            for (const m of members) {
+                const mStr = String(m).toLowerCase();
+                if (validIds.has(mStr)) return true;
+                const mUser = findPdfUser(mStr);
+                if (mUser && targetUser && mUser.id === targetUser.id) return true;
+            }
+            return false;
         }
 
         function isUserRecipient(req, user) {
@@ -980,9 +794,312 @@ exports.handler = async (event, context) => {
             return false;
         }
 
+        // Multi-Tier Central Persistent Store across All Devices and Serverless Containers
+        const STORE_FILE = path.join('/tmp', 'life_pms_serverless_data.json');
+        let _blobStore = null;
+
+        function getNetlifyBlobStore() {
+            if (_blobStore) return _blobStore;
+            try {
+                const { getStore } = require('@netlify/blobs');
+                _blobStore = getStore({
+                    name: 'life_pms_production_database',
+                    consistency: 'strong'
+                });
+                return _blobStore;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function loadStore() {
+            // 1. Try Netlify Blobs (Central persistent storage across devices & function invocations)
+            const bStore = getNetlifyBlobStore();
+            if (bStore) {
+                try {
+                    const data = await bStore.get('master_store', { type: 'json' });
+                    if (data && typeof data === 'object') {
+                        return {
+                            projects: Array.isArray(data.projects) ? data.projects : [],
+                            tasks: Array.isArray(data.tasks) ? data.tasks : [],
+                            taskLists: Array.isArray(data.taskLists) ? data.taskLists : [],
+                            issues: Array.isArray(data.issues) ? data.issues : [],
+                            phases: Array.isArray(data.phases) ? data.phases : [],
+                            requests: Array.isArray(data.requests) ? data.requests : []
+                        };
+                    }
+                } catch (e) {
+                    console.warn('[Netlify Blobs Read Notice]:', e.message);
+                }
+            }
+
+            // 2. Fallback to /tmp filesystem
+            try {
+                if (fs.existsSync(STORE_FILE)) {
+                    const parsed = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
+                    if (parsed && typeof parsed === 'object') {
+                        return {
+                            projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+                            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+                            taskLists: Array.isArray(parsed.taskLists) ? parsed.taskLists : [],
+                            issues: Array.isArray(parsed.issues) ? parsed.issues : [],
+                            phases: Array.isArray(parsed.phases) ? parsed.phases : [],
+                            requests: Array.isArray(parsed.requests) ? parsed.requests : []
+                        };
+                    }
+                }
+            } catch (e) { }
+
+            // 3. Fallback to in-memory store
+            return {
+                projects: global._serverlessProjects || [],
+                tasks: global._serverlessTasks || [],
+                taskLists: global._serverlessTaskLists || [],
+                issues: global._serverlessIssues || [],
+                phases: global._serverlessPhases || [],
+                requests: global._serverlessRequests || []
+            };
+        }
+
+        async function saveStore(s) {
+            global._serverlessProjects = s.projects;
+            global._serverlessTasks = s.tasks;
+            global._serverlessTaskLists = s.taskLists;
+            global._serverlessIssues = s.issues;
+            global._serverlessPhases = s.phases;
+            global._serverlessRequests = s.requests;
+
+            // 1. Write to /tmp
+            try {
+                fs.writeFileSync(STORE_FILE, JSON.stringify(s), 'utf8');
+            } catch (e) { }
+
+            // 2. Write to Netlify Blobs (Central persistent storage across devices & function invocations)
+            const bStore = getNetlifyBlobStore();
+            if (bStore) {
+                try {
+                    await bStore.setJSON('master_store', s);
+                } catch (e) {
+                    console.warn('[Netlify Blobs Write Notice]:', e.message);
+                }
+            }
+        }
+
+        // Route 6.3: Projects (GET /api/v1/projects, POST /api/v1/projects)
+        if (cleanPath.includes('/projects')) {
+            const authUser = getAuthUser(event);
+            const store = await loadStore();
+
+            if (event.httpMethod === 'POST') {
+                const isPub = (body.isPublic === 1 || body.isPublic === true || body.is_public === 1 || body.is_public === true) ? 1 : 0;
+                const ownerUser = findPdfUser(authUser?.id) || findPdfUser(authUser?.email) || findPdfUser(authUser?.username) || findPdfUser(body.ownerId);
+
+                const ownerId = ownerUser ? ownerUser.id : (authUser?.id || body.ownerId || 'usr-admin');
+                const ownerEmail = ownerUser ? ownerUser.email : (authUser?.email || body.ownerEmail || '');
+                const ownerUsername = ownerUser ? ownerUser.username : (authUser?.username || body.ownerUsername || '');
+                const ownerName = ownerUser ? ownerUser.name : (authUser?.name || body.ownerName || 'User');
+
+                const newProject = {
+                    id: 'proj-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
+                    name: body.name || 'New Project',
+                    key_prefix: body.keyPrefix || body.key_prefix || 'PRJ',
+                    keyPrefix: body.keyPrefix || body.key_prefix || 'PRJ',
+                    description: body.description || '',
+                    is_public: isPub,
+                    isPublic: isPub,
+                    owner_id: ownerId,
+                    ownerId: ownerId,
+                    owner_email: ownerEmail,
+                    ownerEmail: ownerEmail,
+                    owner_username: ownerUsername,
+                    ownerUsername: ownerUsername,
+                    owner_name: ownerName,
+                    ownerName: ownerName,
+                    member_ids: [ownerId, ownerUser?.slugId, ownerUser?.uuid, ownerEmail].filter(Boolean),
+                    portal_id: 'portal-demo-zoho',
+                    start_date: body.startDate || new Date().toISOString().split('T')[0],
+                    end_date: body.endDate || '',
+                    created_at: new Date().toISOString(),
+                    stats: { openTaskCount: 0, closedTaskCount: 0, completionPercentage: 0 }
+                };
+
+                store.projects.unshift(newProject);
+
+                // Auto-create default task lists for the new project
+                store.taskLists.push(
+                    { id: 'list-' + newProject.id + '-internal', projectId: newProject.id, name: 'General (Internal)', flag: 'internal' },
+                    { id: 'list-' + newProject.id + '-external', projectId: newProject.id, name: 'General (Client Visible)', flag: 'external' }
+                );
+
+                await saveStore(store);
+
+                return {
+                    statusCode: 201,
+                    headers: CORS_HEADERS,
+                    body: JSON.stringify({ success: true, data: newProject })
+                };
+            }
+
+            // GET Projects (Scoped by Public vs Private Visibility Rules)
+            let projs = store.projects;
+            if (authUser && authUser.role !== 'admin') {
+                projs = projs.filter(p => {
+                    const isPub = p.is_public === 1 || p.isPublic === 1 || p.isPublic === true;
+                    if (isPub) return true; // Public projects visible to all registered users
+                    return isUserProjectOwnerOrMember(p, authUser); // Private projects strictly visible ONLY to creator & members
+                });
+            }
+
+            return {
+                statusCode: 200,
+                headers: CORS_HEADERS,
+                body: JSON.stringify({
+                    success: true,
+                    count: projs.length,
+                    data: projs
+                })
+            };
+        }
+
+        // Route 6.4: Tasks (GET /api/v1/tasks/project/:id, POST /api/v1/tasks/project/:id, PATCH quick-status)
+        if (cleanPath.includes('/tasks')) {
+            const authUser = getAuthUser(event);
+            const store = await loadStore();
+
+            // PATCH quick-status
+            if (cleanPath.includes('/quick-status')) {
+                const parts = cleanPath.split('/');
+                const taskId = parts[parts.indexOf('tasks') + 1];
+                const task = store.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.is_completed = body.isCompleted ? 1 : 0;
+                    task.status_id = body.isCompleted ? 'completed' : 'open';
+                    await saveStore(store);
+                }
+                return {
+                    statusCode: 200,
+                    headers: CORS_HEADERS,
+                    body: JSON.stringify({ success: true })
+                };
+            }
+
+            // POST /api/v1/tasks/project/:id
+            if (event.httpMethod === 'POST') {
+                const parts = cleanPath.split('/');
+                const projId = parts[parts.indexOf('tasks') + 2] || body.projectId;
+                const count = store.tasks.length + 1;
+                const newTask = {
+                    id: 'task-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
+                    projectId: projId,
+                    project_id: projId,
+                    name: body.name || 'New Task',
+                    description: body.note || body.description || '',
+                    priority: body.priority || 'medium',
+                    status_id: 'open',
+                    is_completed: 0,
+                    start_date: body.startDate || new Date().toISOString().split('T')[0],
+                    end_date: body.endDate || '',
+                    taskListId: body.taskListId || 'list-' + projId + '-internal',
+                    task_list_id: body.taskListId || 'list-' + projId + '-internal',
+                    owner_ids: body.ownerIds?.length ? body.ownerIds : (authUser?.id ? [authUser.id] : []),
+                    prefix_key: 'T-' + (40 + count),
+                    created_at: new Date().toISOString()
+                };
+
+                store.tasks.unshift(newTask);
+                await saveStore(store);
+
+                return {
+                    statusCode: 201,
+                    headers: CORS_HEADERS,
+                    body: JSON.stringify({ success: true, data: newTask })
+                };
+            }
+
+            // GET /api/v1/tasks/project/:id
+            const parts = cleanPath.split('/');
+            const targetProjId = parts[parts.indexOf('tasks') + 2];
+            let projTasks = store.tasks;
+            if (targetProjId) {
+                projTasks = projTasks.filter(t => t.projectId === targetProjId || t.project_id === targetProjId || (!t.projectId && !t.project_id));
+            }
+
+            return {
+                statusCode: 200,
+                headers: CORS_HEADERS,
+                body: JSON.stringify({
+                    success: true,
+                    count: projTasks.length,
+                    data: projTasks
+                })
+            };
+        }
+
+        // Route 6.5: Task Lists (GET /api/v1/task-lists/project/:id)
+        if (cleanPath.includes('/task-lists')) {
+            const store = await loadStore();
+            const parts = cleanPath.split('/');
+            const projId = parts[parts.indexOf('task-lists') + 2];
+            let lists = store.taskLists.filter(tl => !projId || tl.projectId === projId);
+            if (lists.length === 0) {
+                lists = [
+                    { id: 'list-' + (projId || 'gen') + '-internal', projectId: projId, name: 'General (Internal)', flag: 'internal' },
+                    { id: 'list-' + (projId || 'gen') + '-external', projectId: projId, name: 'General (Client Visible)', flag: 'external' }
+                ];
+            }
+            return {
+                statusCode: 200,
+                headers: CORS_HEADERS,
+                body: JSON.stringify({ success: true, data: lists })
+            };
+        }
+
+        // Route 6.6: Phases (GET /api/v1/phases/project/:id)
+        if (cleanPath.includes('/phases')) {
+            const store = await loadStore();
+            const parts = cleanPath.split('/');
+            const projId = parts[parts.indexOf('phases') + 2];
+            let phases = store.phases.filter(p => !projId || p.projectId === projId);
+            return {
+                statusCode: 200,
+                headers: CORS_HEADERS,
+                body: JSON.stringify({ success: true, data: phases })
+            };
+        }
+
+        // Route 6.7: Issues (GET /api/v1/issues, POST /api/v1/issues)
+        if (cleanPath.includes('/issues')) {
+            const store = await loadStore();
+            if (event.httpMethod === 'POST') {
+                const newIssue = {
+                    id: 'issue-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
+                    projectId: body.projectId,
+                    title: body.title || 'Reported Issue',
+                    severity: body.severity || 'medium',
+                    description: body.description || '',
+                    status: 'open',
+                    prefix_key: 'BUG-' + (store.issues.length + 101),
+                    created_at: new Date().toISOString()
+                };
+                store.issues.unshift(newIssue);
+                await saveStore(store);
+                return {
+                    statusCode: 201,
+                    headers: CORS_HEADERS,
+                    body: JSON.stringify({ success: true, data: newIssue })
+                };
+            }
+            return {
+                statusCode: 200,
+                headers: CORS_HEADERS,
+                body: JSON.stringify({ success: true, count: store.issues.length, data: store.issues })
+            };
+        }
+
         // Route 6.8: My Approvals (GET /api/v1/requests/approvals)
         if (cleanPath.includes('/requests/approvals') && event.httpMethod === 'GET') {
             const authUser = getAuthUser(event);
+            const store = await loadStore();
             let approvals = store.requests;
             if (authUser && authUser.role !== 'admin') {
                 approvals = approvals.filter(r => isUserSender(r, authUser) || isUserRecipient(r, authUser));
@@ -1034,6 +1151,7 @@ exports.handler = async (event, context) => {
         // Route 6.9: In-App Requests (Incoming, Sent, Respond, Create)
         if (cleanPath.includes('/requests') && !cleanPath.includes('/approvals')) {
             const authUser = getAuthUser(event);
+            const store = await loadStore();
 
             if (cleanPath.includes('/respond') && event.httpMethod === 'PATCH') {
                 const parts = cleanPath.split('/');
@@ -1056,9 +1174,12 @@ exports.handler = async (event, context) => {
                             if (reqItem.receiver_email && !proj.member_ids.includes(reqItem.receiver_email)) {
                                 proj.member_ids.push(reqItem.receiver_email);
                             }
+                            if (reqItem.receiver_username && !proj.member_ids.includes(reqItem.receiver_username)) {
+                                proj.member_ids.push(reqItem.receiver_username);
+                            }
                         }
                     }
-                    saveStore(store);
+                    await saveStore(store);
                 }
                 return {
                     statusCode: 200,
@@ -1131,7 +1252,7 @@ exports.handler = async (event, context) => {
                 };
 
                 store.requests.unshift(newReq);
-                saveStore(store);
+                await saveStore(store);
 
                 return {
                     statusCode: 201,
@@ -1158,6 +1279,7 @@ exports.handler = async (event, context) => {
 
         // Route 6.10: Global Dashboard Stats (GET /api/v1/views/dashboard/global)
         if (cleanPath.includes('/views/dashboard/global') && event.httpMethod === 'GET') {
+            const store = await loadStore();
             return {
                 statusCode: 200,
                 headers: CORS_HEADERS,
