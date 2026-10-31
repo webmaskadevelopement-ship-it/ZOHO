@@ -1,3 +1,4 @@
+const CentralSyncService = require('../../services/centralSyncService');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database');
 const SlaEngine = require('../../engines/slaEngine');
@@ -121,7 +122,9 @@ class IssuesService {
 
             WbsRollupEngine.rollupProject(db, projectId);
 
-            return this.getIssueById(portalId, id);
+            const createdIssue = this.getIssueById(portalId, id);
+            CentralSyncService.syncIssue(createdIssue).catch(() => {});
+            return createdIssue;
         });
     }
 

@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database');
 const WbsRollupEngine = require('../../engines/wbsRollupEngine');
+const CentralSyncService = require('../../services/centralSyncService');
 
 class ProjectsService {
     // Project Groups (Portfolios)
@@ -232,7 +233,9 @@ class ProjectsService {
                 [externalListId, finalPortalId, id, now, now]
             );
 
-            return this.getProjectById(finalPortalId, id);
+            const created = this.getProjectById(finalPortalId, id);
+            CentralSyncService.syncProject(created).catch(() => {});
+            return created;
         });
     }
 

@@ -9,6 +9,7 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 // Safe HTML escaping for email templates
 function escapeHtml(value) {
@@ -798,6 +799,52 @@ exports.handler = async (event, context) => {
         const STORE_FILE = path.join('/tmp', 'life_pms_serverless_data.json');
         let _blobStore = null;
 
+        const CLOUD_ENDPOINT = 'bright-bison-96116.upstash.io';
+        const CLOUD_TOKEN = 'gQAAAAAAAXd0AQIgcDEwYTA2MDVmMzJlMzE0MTQ2OTE4ZDJkNGYxYTk2Y2NmMg';
+        const MASTER_STORE_KEY = 'master_store';
+
+        function runUpstashCommand(command) {
+            return new Promise((resolve) => {
+                try {
+                    const postData = JSON.stringify(command);
+                    const req = https.request({
+                        hostname: CLOUD_ENDPOINT,
+                        path: '/',
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + CLOUD_TOKEN,
+                            'Content-Type': 'application/json',
+                            'Content-Length': Buffer.byteLength(postData)
+                        },
+                        timeout: 3500
+                    }, res => {
+                        let data = '';
+                        res.on('data', chunk => data += chunk);
+                        res.on('end', () => {
+                            try {
+                                const parsed = JSON.parse(data);
+                                resolve(parsed.result);
+                            } catch (e) {
+                                resolve(null);
+                            }
+                        });
+                    });
+                    req.on('error', (err) => {
+                        console.warn('[Central Cloud Store] Notice:', err.message);
+                        resolve(null);
+                    });
+                    req.on('timeout', () => {
+                        req.destroy();
+                        resolve(null);
+                    });
+                    req.write(postData);
+                    req.end();
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
         function getNetlifyBlobStore() {
             if (_blobStore) return _blobStore;
             try {
@@ -813,7 +860,34 @@ exports.handler = async (event, context) => {
         }
 
         async function loadStore() {
-            // 1. Try Netlify Blobs (Central persistent storage across devices & function invocations)
+            // 1. Central Distributed Cloud Persistent Store (Upstash Redis HTTPS REST API - connects ALL Netlify instances, mobile phones & laptops)
+            try {
+                const cloudRaw = await runUpstashCommand(['GET', MASTER_STORE_KEY]);
+                if (cloudRaw) {
+                    const parsed = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
+                    if (parsed && typeof parsed === 'object') {
+                        const cloudStore = {
+                            projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+                            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+                            taskLists: Array.isArray(parsed.taskLists) ? parsed.taskLists : [],
+                            issues: Array.isArray(parsed.issues) ? parsed.issues : [],
+                            phases: Array.isArray(parsed.phases) ? parsed.phases : [],
+                            requests: Array.isArray(parsed.requests) ? parsed.requests : []
+                        };
+                        global._serverlessProjects = cloudStore.projects;
+                        global._serverlessTasks = cloudStore.tasks;
+                        global._serverlessTaskLists = cloudStore.taskLists;
+                        global._serverlessIssues = cloudStore.issues;
+                        global._serverlessPhases = cloudStore.phases;
+                        global._serverlessRequests = cloudStore.requests;
+                        return cloudStore;
+                    }
+                }
+            } catch (e) {
+                console.warn('[Cloud Store Read Notice]:', e.message);
+            }
+
+            // 2. Netlify Blobs (if available)
             const bStore = getNetlifyBlobStore();
             if (bStore) {
                 try {
@@ -833,7 +907,7 @@ exports.handler = async (event, context) => {
                 }
             }
 
-            // 2. Fallback to /tmp filesystem
+            // 3. Fallback to /tmp filesystem
             try {
                 if (fs.existsSync(STORE_FILE)) {
                     const parsed = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
@@ -850,7 +924,7 @@ exports.handler = async (event, context) => {
                 }
             } catch (e) { }
 
-            // 3. Fallback to in-memory store
+            // 4. Fallback to in-memory store
             return {
                 projects: global._serverlessProjects || [],
                 tasks: global._serverlessTasks || [],
@@ -874,7 +948,14 @@ exports.handler = async (event, context) => {
                 fs.writeFileSync(STORE_FILE, JSON.stringify(s), 'utf8');
             } catch (e) { }
 
-            // 2. Write to Netlify Blobs (Central persistent storage across devices & function invocations)
+            // 2. Central Distributed Cloud Persistent Store (Upstash Redis HTTPS REST API)
+            try {
+                await runUpstashCommand(['SET', MASTER_STORE_KEY, JSON.stringify(s)]);
+            } catch (e) {
+                console.warn('[Cloud Store Write Notice]:', e.message);
+            }
+
+            // 3. Write to Netlify Blobs (if available)
             const bStore = getNetlifyBlobStore();
             if (bStore) {
                 try {
@@ -1073,7 +1154,7 @@ exports.handler = async (event, context) => {
             if (event.httpMethod === 'POST') {
                 const newIssue = {
                     id: 'issue-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
-                    projectId: body.projectId,
+                    projectId: body.projectId || (store.projects && store.projects[0] ? store.projects[0].id : 'proj-general'),
                     title: body.title || 'Reported Issue',
                     severity: body.severity || 'medium',
                     description: body.description || '',

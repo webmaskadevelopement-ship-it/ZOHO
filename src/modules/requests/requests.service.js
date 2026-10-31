@@ -1,3 +1,4 @@
+const CentralSyncService = require('../../services/centralSyncService');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database');
 const { FirebaseFirestoreService } = require('../../services/firebaseFirestoreService');

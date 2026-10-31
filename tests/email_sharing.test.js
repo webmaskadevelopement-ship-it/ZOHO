@@ -34,7 +34,7 @@ describe('Email Sharing & Backend Integration Test Suite', () => {
         clientUser = db.queryOne("SELECT id, email, name, role FROM users WHERE role = 'client' LIMIT 1");
 
         let isTempProject = false;
-        let proj = db.queryOne("SELECT id FROM projects LIMIT 1");
+        let proj = db.queryOne("SELECT id FROM projects WHERE owner_id = ? LIMIT 1", [adminUser.id]);
         if (!proj) {
             proj = ProjectsService.createProject(portalId, {
                 name: 'Email Sharing Test Project',

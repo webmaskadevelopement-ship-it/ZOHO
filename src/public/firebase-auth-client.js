@@ -222,6 +222,28 @@ export async function firebaseSignInWithGoogle() {
 /**
  * Sign Out from Firebase Auth
  */
+
+/**
+ * Sign in using email/password with Firebase Auth
+ */
+export async function firebaseSignInWithCredentials(email, password) {
+    if (!email || !password) return { success: false, error: 'Email and password required' };
+    try {
+        const userCred = await signInWithEmailAndPassword(auth, email.trim(), password);
+        const idToken = await userCred.user.getIdToken();
+        return {
+            success: true,
+            user: userCred.user,
+            idToken,
+            uid: userCred.user.uid,
+            email: userCred.user.email
+        };
+    } catch (err) {
+        console.warn('[Firebase Auth] Sign in with credentials notice:', err.message);
+        return { success: false, error: err.message };
+    }
+}
+
 export async function firebaseSignOut() {
     try {
         await signOut(auth);
@@ -612,6 +634,8 @@ window.firebaseAuthClient = {
     firebaseConfig,
     googleProvider,
     firebaseSignInWithGoogle,
+    firebaseSignInWithCredentials,
+    signInWithEmailAndPassword,
     checkRedirectLogin,
     firebaseSignOut,
     exchangeIdTokenWithBackend,

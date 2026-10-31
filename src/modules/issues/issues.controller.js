@@ -23,14 +23,32 @@ router.get('/project/:projectId', (req, res, next) => {
     }
 });
 
-router.post('/', requireRole(['admin', 'manager', 'employee', 'client']), (req, res, next) => {
+router.post('/', requireRole(['admin', 'manager', 'employee', 'member', 'client']), (req, res, next) => {
     try {
-        const { projectId, title } = req.body;
-        if (!projectId || !title) {
-            return res.status(400).json({ success: false, error: 'projectId and title are required.' });
+        let { projectId, title } = req.body;
+        if (!title) {
+            return res.status(400).json({ success: false, error: 'Issue title is required.' });
+        }
+        if (!projectId) {
+            const db = require('../../db/database');
+            const defaultProj = db.queryOne('SELECT id FROM projects WHERE portal_id = ? LIMIT 1', [req.portalId]);
+            if (defaultProj) {
+                projectId = defaultProj.id;
+            } else {
+                const ProjectsService = require('../projects/projects.service');
+                const newP = ProjectsService.createProject({
+                    portalId: req.portalId,
+                    ownerId: req.user.id,
+                    name: 'General Project',
+                    keyPrefix: 'GEN',
+                    isPublic: 1
+                });
+                projectId = newP.id;
+            }
         }
         const issue = IssuesService.createIssue(req.portalId, {
             ...req.body,
+            projectId,
             reporterId: req.user.id
         });
         res.status(201).json({ success: true, data: issue });

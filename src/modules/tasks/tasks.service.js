@@ -1,3 +1,4 @@
+const CentralSyncService = require('../../services/centralSyncService');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../db/database');
 const BusinessDayEngine = require('../../engines/businessDayEngine');
@@ -224,7 +225,9 @@ class TasksService {
 
             WbsRollupEngine.rollupProject(db, projectId);
 
-            return this.getTaskById(portalId, id);
+            const createdTask = this.getTaskById(portalId, id);
+            CentralSyncService.syncTask(createdTask).catch(() => {});
+            return createdTask;
         });
     }
 

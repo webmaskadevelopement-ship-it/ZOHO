@@ -42,7 +42,7 @@ describe('Deep Backend Audit - Newly Implemented Modules & Features Test Suite',
         projectId = proj.id;
 
         let tasks = db.queryAll('SELECT id FROM tasks WHERE project_id = ? LIMIT 2', [projectId]);
-        if (tasks.length === 0) {
+        if (tasks.length < 2) {
             const t1 = TasksService.createTask(portalId, {
                 projectId,
                 name: 'Test Audit Task 1',

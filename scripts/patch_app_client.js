@@ -165,3 +165,4 @@ code = code.replace(issuesCacheOld, issuesCacheNew);
 
 fs.writeFileSync(targetPath, isCrlf ? code.replace(/\n/g, '\r\n') : code, 'utf8');
 console.log('Successfully patched src/public/app.js with client-side visibility scoping and cross-device localStorage sync!');
+

@@ -30,7 +30,7 @@ router.get('/project/:projectId', (req, res, next) => {
 });
 
 // Create task under a project
-router.post('/project/:projectId', requireRole(['admin', 'manager', 'employee', 'member']), (req, res, next) => {
+router.post('/project/:projectId', requireRole(['admin', 'manager', 'employee', 'member', 'client']), (req, res, next) => {
     try {
         const payload = { ...req.body, projectId: req.params.projectId };
         if (!payload.name) {
@@ -44,7 +44,7 @@ router.post('/project/:projectId', requireRole(['admin', 'manager', 'employee', 
 });
 
 // Create task root route
-router.post('/', requireRole(['admin', 'manager', 'employee']), (req, res, next) => {
+router.post('/', requireRole(['admin', 'manager', 'employee', 'member', 'client']), (req, res, next) => {
     try {
         const { projectId, taskListId, name } = req.body;
         if (!projectId || !taskListId || !name) {

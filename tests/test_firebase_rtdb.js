@@ -15,3 +15,4 @@ urls.forEach(u => {
         res.on('end', () => console.log(u, res.statusCode, b.substring(0, 100)));
     }).on('error', e => console.error(u, e.message));
 });
+
