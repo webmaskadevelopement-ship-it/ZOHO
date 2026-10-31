@@ -159,6 +159,12 @@ class TasksService {
                 if (defaultList) {
                     finalTaskListId = defaultList.id;
                     if (!finalPhaseId) finalPhaseId = defaultList.phase_id;
+                } else {
+                    finalTaskListId = uuidv4();
+                    database.prepare(
+                        `INSERT INTO task_lists (id, portal_id, project_id, phase_id, name, flag, is_general_default, created_at, updated_at)
+                         VALUES (?, ?, ?, NULL, 'General Tasks', 'internal', 1, ?, ?)`
+                    ).run(finalTaskListId, portalId, projectId, now, now);
                 }
             } else if (!finalPhaseId) {
                 const tl = database.prepare('SELECT phase_id FROM task_lists WHERE id = ?').get(taskListId);

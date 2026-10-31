@@ -204,7 +204,51 @@
             <!-- Error / Info Toast Banner -->
             <div id="loginAlertToast" class="login-alert-toast" role="alert"></div>
 
-            <!-- Google Login Button (Only Permitted Method) -->
+            
+            <!-- Username/Password Login Form -->
+            <form id="loginForm" class="login-form" style="display:flex; flex-direction:column; gap:14px;">
+                <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
+                    <label for="usernameInput" style="font-size:12.5px; font-weight:600; color:#334155;">Username or Email</label>
+                    <input type="text" id="usernameInput" placeholder="e.g. ravi.bhadoria or user@zoho.com" required
+                           style="padding:10px 12px; border:1.5px solid #CBD5E1; border-radius:8px; font-size:13.5px; outline:none; transition:border-color 0.2s;" />
+                </div>
+                <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label for="passwordInput" style="font-size:12.5px; font-weight:600; color:#334155;">Password</label>
+                    </div>
+                    <input type="password" id="passwordInput" placeholder="••••••••" required
+                           style="padding:10px 12px; border:1.5px solid #CBD5E1; border-radius:8px; font-size:13.5px; outline:none; transition:border-color 0.2s;" />
+                </div>
+                <button type="submit" id="btnCredentialsLogin"
+                        style="margin-top:4px; padding:11px 16px; background:#0EA5E9; color:#fff; border:none; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer; transition:background 0.2s; box-shadow:0 2px 6px rgba(14,165,233,0.3);">
+                    Sign In
+                </button>
+            </form>
+
+            <!-- Quick Credentials Helper for Testing & Fast Sign-in -->
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px 14px;">
+                <div style="font-size:11.5px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px;">
+                    ⚡ Quick Test Credentials (Click to fill)
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;" id="quickCredChips">
+                    <button type="button" class="cred-chip" data-user="ravi.bhadoria" data-pass="Zoho@Ravi#2026" style="background:#fff; border:1px solid #CBD5E1; border-radius:6px; padding:4px 8px; font-size:11.5px; color:#1E293B; cursor:pointer; font-weight:500;">👤 Ravi Bhadoria</button>
+                    <button type="button" class="cred-chip" data-user="ananya.gupta" data-pass="Zoho@Anan#2026" style="background:#fff; border:1px solid #CBD5E1; border-radius:6px; padding:4px 8px; font-size:11.5px; color:#1E293B; cursor:pointer; font-weight:500;">👤 Ananya Gupta</button>
+                    <button type="button" class="cred-chip" data-user="ineet" data-pass="Zoho@Inee#2026" style="background:#fff; border:1px solid #CBD5E1; border-radius:6px; padding:4px 8px; font-size:11.5px; color:#1E293B; cursor:pointer; font-weight:500;">👤 Ineet</button>
+                    <button type="button" class="cred-chip" data-user="nikhil" data-pass="Zoho@Nikh#2026" style="background:#fff; border:1px solid #CBD5E1; border-radius:6px; padding:4px 8px; font-size:11.5px; color:#1E293B; cursor:pointer; font-weight:500;">👤 Nikhil</button>
+                    <button type="button" class="cred-chip" data-user="ritika" data-pass="Zoho@Riti#2026" style="background:#fff; border:1px solid #CBD5E1; border-radius:6px; padding:4px 8px; font-size:11.5px; color:#1E293B; cursor:pointer; font-weight:500;">👤 Ritika</button>
+                    <button type="button" class="cred-chip" data-user="admin" data-pass="FirebaseManagedAuth2026!" style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:4px 8px; font-size:11.5px; color:#1D4ED8; cursor:pointer; font-weight:600;">🔑 Admin</button>
+                    <button type="button" class="cred-chip" data-user="manager" data-pass="FirebaseManagedAuth2026!" style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px; padding:4px 8px; font-size:11.5px; color:#15803D; cursor:pointer; font-weight:600;">👔 Manager</button>
+                </div>
+            </div>
+
+
+            <div style="display:flex; align-items:center; gap:12px; margin: 4px 0;">
+                <hr style="flex:1; border:none; border-top:1px solid #E2E8F0;" />
+                <span style="font-size:11.5px; color:#94A3B8; text-transform:uppercase; font-weight:600;">or</span>
+                <hr style="flex:1; border:none; border-top:1px solid #E2E8F0;" />
+            </div>
+
+            <!-- Google Login Button -->
             <button type="button" id="btnGoogleLogin" class="btn-google-login">
                 <svg class="google-icon-svg" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -232,6 +276,58 @@
             const alertToast = document.getElementById('loginAlertToast');
             const googleBtn = document.getElementById('btnGoogleLogin');
             const googleBtnText = document.getElementById('googleBtnText');
+
+            // Standard Username/Password Login Form Submission
+            
+            document.querySelectorAll('.cred-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const u = chip.getAttribute('data-user');
+                    const p = chip.getAttribute('data-pass');
+                    const uInp = document.getElementById('usernameInput');
+                    const pInp = document.getElementById('passwordInput');
+                    if (uInp && pInp) {
+                        uInp.value = u;
+                        pInp.value = p;
+                        uInp.focus();
+                    }
+                });
+            });
+
+            document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideToast();
+                const identifier = document.getElementById('usernameInput').value.trim();
+                const password = document.getElementById('passwordInput').value;
+                const btn = document.getElementById('btnCredentialsLogin');
+                btn.disabled = true;
+                btn.textContent = 'Signing in...';
+
+                try {
+                    const res = await fetch('/api/v1/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: identifier, username: identifier, password })
+                    });
+                    const data = await res.json();
+                    if (data.success && data.data && data.data.token) {
+                        localStorage.setItem('life_pms_token', data.data.token);
+                        localStorage.setItem('life_pms_user', JSON.stringify(data.data.user));
+                        showToast('✓ Signed in successfully! Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = getRedirectUrl();
+                        }, 400);
+                    } else {
+                        showToast(data.error || 'Invalid username/email or password.', 'error');
+                        btn.disabled = false;
+                        btn.textContent = 'Sign In';
+                    }
+                } catch (err) {
+                    showToast('Login failed: ' + err.message, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                }
+            });
+
 
             function showToast(message, type = 'error') {
                 alertToast.textContent = message;

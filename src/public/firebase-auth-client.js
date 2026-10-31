@@ -12,7 +12,8 @@ import {
     getDocs,
     getDoc,
     query,
-    where
+    where,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
     getAuth,
@@ -485,6 +486,32 @@ export async function triggerFirebasePasswordReset(email) {
     }
 }
 
+
+/**
+ * Listen to real-time notifications in Firestore for the logged-in user
+ */
+export function listenToRealtimeNotifications(userId, callback) {
+    if (!userId || !db) return null;
+    try {
+        const notifsRef = collection(db, 'users', userId, 'notifications');
+        const q = query(notifsRef, where('isRead', '==', false));
+        return onSnapshot(q, (snapshot) => {
+            const notifications = [];
+            snapshot.forEach(doc => {
+                notifications.push({ id: doc.id, ...doc.data() });
+            });
+            if (typeof callback === 'function') {
+                callback(notifications);
+            }
+        }, (err) => {
+            console.warn('[Firestore Real-Time Listener] notice:', err.message);
+        });
+    } catch (err) {
+        console.warn('[Firestore Real-Time Listener] setup notice:', err.message);
+        return null;
+    }
+}
+
 // Expose cleanly to global window object
 window.firebaseAuthClient = {
     app,
@@ -507,5 +534,6 @@ window.firebaseAuthClient = {
     fetchInvitedMembersFromFirestore,
     syncAllWorkspaceDataToFirestore,
     triggerFirebasePasswordReset,
+    listenToRealtimeNotifications,
     onAuthStateChanged
 };

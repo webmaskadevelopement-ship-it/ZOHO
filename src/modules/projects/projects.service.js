@@ -108,6 +108,48 @@ class ProjectsService {
         const id = uuidv4();
         const now = new Date().toISOString();
 
+        // 1. Resolve safe portalId to guarantee foreign key validity
+        let finalPortalId = portalId || 'portal-demo-zoho';
+        const portalRow = db.queryOne('SELECT id FROM portals WHERE id = ?', [finalPortalId]);
+        if (!portalRow) {
+            finalPortalId = 'portal-demo-zoho';
+        }
+
+        // 2. Resolve safe ownerId to guarantee foreign key validity
+        let finalOwnerId = ownerId;
+        let userRow = finalOwnerId ? db.queryOne('SELECT id FROM users WHERE id = ?', [finalOwnerId]) : null;
+        if (!userRow && finalOwnerId) {
+            userRow = db.queryOne('SELECT id FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?', [String(finalOwnerId).toLowerCase(), String(finalOwnerId).toLowerCase()]);
+            if (userRow) finalOwnerId = userRow.id;
+        }
+        if (!userRow) {
+            const fallbackAdmin = db.queryOne("SELECT id FROM users WHERE role = 'admin' LIMIT 1") || db.queryOne("SELECT id FROM users LIMIT 1");
+            finalOwnerId = fallbackAdmin ? fallbackAdmin.id : null;
+        }
+
+        // 3. Resolve safe projectGroupId to prevent FOREIGN KEY constraint failure
+        let finalProjectGroupId = null;
+        if (projectGroupId && projectGroupId !== 'general' && projectGroupId !== 'none' && projectGroupId !== 'null') {
+            let groupRow = db.queryOne('SELECT id FROM project_groups WHERE id = ?', [projectGroupId]);
+            if (!groupRow) {
+                groupRow = db.queryOne('SELECT id FROM project_groups WHERE LOWER(name) = ? OR LOWER(id) = ?', [String(projectGroupId).toLowerCase(), String(projectGroupId).toLowerCase()]);
+            }
+            if (groupRow) {
+                finalProjectGroupId = groupRow.id;
+            } else {
+                try {
+                    const groupName = projectGroupId === 'internal' ? 'Internal Operations' : (projectGroupId === 'client' ? 'Client Workflows' : (String(projectGroupId).charAt(0).toUpperCase() + String(projectGroupId).slice(1)));
+                    db.execute(
+                        'INSERT OR IGNORE INTO project_groups (id, portal_id, name, description, color, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                        [projectGroupId, finalPortalId, groupName, 'Project Group', '#3B82F6', now]
+                    );
+                    finalProjectGroupId = projectGroupId;
+                } catch (e) {
+                    finalProjectGroupId = null;
+                }
+            }
+        }
+
         // Generate Prefix Key e.g. "ZPA", "PROJ"
         const cleanName = (name && typeof name === 'string') ? name : 'PRJ';
         const prefix = (keyPrefix || cleanName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'PR')).padEnd(3, 'J');
@@ -134,7 +176,7 @@ class ProjectsService {
             healthScore: 'on_track'
         };
 
-        const finalMemberIds = Array.from(new Set([ownerId, ...memberIds]));
+        const finalMemberIds = Array.from(new Set([finalOwnerId, ...memberIds].filter(Boolean)));
 
         return db.transaction(() => {
             db.execute(
@@ -145,8 +187,8 @@ class ProjectsService {
                     start_date, end_date, budget_config, stats, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    id, portalId, projectGroupId, name, description, prefix,
-                    ownerId, JSON.stringify(finalMemberIds), JSON.stringify(clientCompanyIds),
+                    id, finalPortalId, finalProjectGroupId, name, description, prefix,
+                    finalOwnerId, JSON.stringify(finalMemberIds), JSON.stringify(clientCompanyIds),
                     projectType, isPublic ? 1 : 0, isStrictSchedule ? 1 : 0, isRollupProject ? 1 : 0,
                     startDate, endDate, JSON.stringify(initialBudget), JSON.stringify(initialStats),
                     now, now
@@ -158,17 +200,17 @@ class ProjectsService {
             db.execute(
                 `INSERT INTO task_lists (id, portal_id, project_id, phase_id, name, flag, is_general_default, created_at, updated_at)
                  VALUES (?, ?, ?, NULL, 'General (Internal)', 'internal', 1, ?, ?)`,
-                [internalListId, portalId, id, now, now]
+                [internalListId, finalPortalId, id, now, now]
             );
 
             const externalListId = uuidv4();
             db.execute(
                 `INSERT INTO task_lists (id, portal_id, project_id, phase_id, name, flag, is_general_default, created_at, updated_at)
                  VALUES (?, ?, ?, NULL, 'General (Client Visible)', 'external', 1, ?, ?)`,
-                [externalListId, portalId, id, now, now]
+                [externalListId, finalPortalId, id, now, now]
             );
 
-            return this.getProjectById(portalId, id);
+            return this.getProjectById(finalPortalId, id);
         });
     }
 
@@ -335,7 +377,7 @@ class ProjectsService {
         }));
     }
 
-    static async shareProject(portalId, projectId, { email, role = 'member', inviterId, inviterName, inviterEmail, baseUrl = 'http://localhost:5000' }) {
+    static async shareProject(portalId, projectId, { email, role = 'member', inviterId, inviterName, inviterEmail, baseUrl = (process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.APP_BASE_URL || 'http://localhost:5000') }) {
         if (!email || typeof email !== 'string') {
             throw new Error('A valid recipient email address is required.');
         }

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS client_companies (
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE,
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'employee', -- 'admin', 'manager', 'employee', 'contractor', 'client'
@@ -41,6 +42,8 @@ CREATE TABLE IF NOT EXISTS users (
     billable_rate_per_hour REAL DEFAULT 0.0,
     department TEXT,
     avatar_url TEXT,
+    bio TEXT,
+    phone TEXT,
     two_factor_secret TEXT,
     two_factor_enabled INTEGER DEFAULT 0,
     client_company_id TEXT REFERENCES client_companies(id) ON DELETE SET NULL,
@@ -709,3 +712,39 @@ CREATE INDEX IF NOT EXISTS idx_folders_project ON folders(project_id, parent_id)
 CREATE INDEX IF NOT EXISTS idx_proof_annotations_file ON proof_annotations(file_id, version);
 CREATE INDEX IF NOT EXISTS idx_entity_tags ON entity_tags(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_public_shares_token ON public_shares(share_token);
+
+-- 43. In-App Requests Table (Instagram-style Pending/Accepted/Rejected queue)
+CREATE TABLE IF NOT EXISTS in_app_requests (
+    id TEXT PRIMARY KEY,
+    sender_id TEXT NOT NULL,
+    receiver_id TEXT NOT NULL,
+    request_type TEXT NOT NULL CHECK(request_type IN (
+      'USER_CONNECTION',
+      'PROJECT_INVITE',
+      'TASK_HANDOFF',
+      'TEAM_INVITE',
+      'APPROVAL_REQUEST'
+    )),
+    target_entity_id TEXT, -- e.g., project_id, task_id, or team_id
+    payload_json TEXT DEFAULT '{}', -- e.g., {"role": "Employee", "message": "Please take over this WBS task"}
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    responded_at DATETIME,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_requests_receiver_status ON in_app_requests(receiver_id, status);
+CREATE INDEX IF NOT EXISTS idx_requests_sender ON in_app_requests(sender_id);
+
+-- 44. User Connections Table (For direct Instagram-style collaborator connections)
+CREATE TABLE IF NOT EXISTS user_connections (
+    user_id TEXT NOT NULL,
+    connected_user_id TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, connected_user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (connected_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_user_connections_lookup ON user_connections(user_id, connected_user_id);
+

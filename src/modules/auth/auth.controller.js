@@ -22,11 +22,12 @@ router.post('/register', async (req, res, next) => {
 
 router.post('/login', async (req, res, next) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ success: false, error: 'Email and password are required.' });
+        const { email, username, password } = req.body;
+        const identifier = (email || username || '').trim();
+        if (!identifier || !password) {
+            return res.status(400).json({ success: false, error: 'Email or username and password are required.' });
         }
-        const result = await AuthService.login({ email, password });
+        const result = await AuthService.login({ email: identifier, username: identifier, password });
         res.json({ success: true, data: result });
     } catch (err) {
         next(err);
@@ -94,6 +95,12 @@ router.post('/google-validate', async (req, res, next) => {
 router.get('/me', authenticate, (req, res, next) => {
     try {
         const result = AuthService.getProfile(req.user.id);
+        if (req.user.role === 'client') {
+            delete result.user.cost_per_hour;
+            delete result.user.billable_rate_per_hour;
+        } else if (req.user.role === 'employee' || req.user.role === 'contractor') {
+            result.user.cost_per_hour = null;
+        }
         res.json({ success: true, data: result });
     } catch (err) {
         next(err);
@@ -103,7 +110,39 @@ router.get('/me', authenticate, (req, res, next) => {
 router.put('/me', authenticate, async (req, res, next) => {
     try {
         const result = await AuthService.updateProfile(req.user.id, req.body);
+        if (req.user.role === 'client') {
+            delete result.user.cost_per_hour;
+            delete result.user.billable_rate_per_hour;
+        } else if (req.user.role === 'employee' || req.user.role === 'contractor') {
+            result.user.cost_per_hour = null;
+        }
         res.json({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+});
+
+router.patch('/me', authenticate, async (req, res, next) => {
+    try {
+        const result = await AuthService.updateProfile(req.user.id, req.body);
+        if (req.user.role === 'client') {
+            delete result.user.cost_per_hour;
+            delete result.user.billable_rate_per_hour;
+        } else if (req.user.role === 'employee' || req.user.role === 'contractor') {
+            result.user.cost_per_hour = null;
+        }
+        res.json({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+});
+
+router.get('/directory', authenticate, (req, res, next) => {
+    try {
+        const UsersService = require('../users/users.service');
+        const portalId = req.headers['x-portal-id'] || 'portal-demo-zoho';
+        const users = UsersService.getDirectory(req.user.id, portalId);
+        res.json({ success: true, data: users });
     } catch (err) {
         next(err);
     }

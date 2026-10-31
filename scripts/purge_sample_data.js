@@ -1,53 +1,61 @@
-const db = require('../src/db/database').getInstance();
+const db = require('../src/db/database');
 
-console.log('--- PURGING ALL PENDING SAMPLE & DUMMY DATA ---');
+const tablesToPurge = [
+    'projects',
+    'phases',
+    'task_lists',
+    'tasks',
+    'issues',
+    'time_logs',
+    'active_timers',
+    'expenses',
+    'invoices',
+    'comments',
+    'files',
+    'wiki_pages',
+    'discussions',
+    'chat_rooms',
+    'notifications',
+    'in_app_requests',
+    'user_connections',
+    'audit_logs',
+    'custom_views',
+    'task_dependencies',
+    'task_relations',
+    'task_reminders',
+    'task_votes',
+    'sla_breach_logs'
+];
 
-// 1. Purge dummy user accounts
-const dummyEmails = ['client.test@gmail.com'];
-for (const email of dummyEmails) {
-    const user = db.prepare('SELECT id, email FROM users WHERE LOWER(email) = ?').get(email.toLowerCase());
-    if (user) {
-        db.prepare('DELETE FROM portal_members WHERE user_id = ?').run(user.id);
-        db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
-        console.log('✓ Removed dummy user:', email);
+console.log('Purging test records and ensuring zero sample data...');
+for (const tbl of tablesToPurge) {
+    try {
+        db.execute(`DELETE FROM "${tbl}"`);
+        console.log(`✓ Purged table: ${tbl}`);
+    } catch (e) {
+        console.warn(`! Note on ${tbl}: ${e.message}`);
     }
 }
 
-// 2. Purge dummy submitted emails
-const dummySubmissions = [
-    'lead.prospect@acmecorp.com',
-    'new.member.test@gmail.com'
-];
-for (const em of dummySubmissions) {
-    const res = db.prepare('DELETE FROM submitted_emails WHERE LOWER(email) = ?').run(em.toLowerCase());
-    if (res.changes > 0) console.log(`✓ Removed ${res.changes} dummy submission(s) for:`, em);
+// Verify users table contains ONLY authorized PDF users + admin/manager
+const users = db.queryAll('SELECT id, name, username, email, role FROM users ORDER BY name ASC');
+console.log(`\nRemaining Users (Total ${users.length}):`);
+users.forEach(u => console.log(`- ${u.name} (@${u.username}) <${u.email}> [${u.role}]`));
+
+// Verify 0 projects, 0 tasks, 0 issues
+const pCount = db.queryOne('SELECT COUNT(*) as c FROM projects').c;
+const tCount = db.queryOne('SELECT COUNT(*) as c FROM tasks').c;
+const iCount = db.queryOne('SELECT COUNT(*) as c FROM issues').c;
+const rCount = db.queryOne('SELECT COUNT(*) as c FROM in_app_requests').c;
+
+console.log(`\nSample Data Check:`);
+console.log(`- Projects: ${pCount}`);
+console.log(`- Tasks: ${tCount}`);
+console.log(`- Issues: ${iCount}`);
+console.log(`- Requests: ${rCount}`);
+
+if (pCount === 0 && tCount === 0 && iCount === 0 && rCount === 0) {
+    console.log('\n✓ Clean database ready: ZERO sample data. Ready for user input.');
+} else {
+    console.error('\n❌ Warning: some sample data remains.');
 }
-
-const corporateVisitors = db.prepare("DELETE FROM submitted_emails WHERE email LIKE '%@corporate.org'").run();
-if (corporateVisitors.changes > 0) console.log(`✓ Removed ${corporateVisitors.changes} corporate.org visitor submissions.`);
-
-// 3. Purge orphaned files and folders referencing non-existent projects
-const deletedFiles = db.prepare('DELETE FROM files WHERE project_id NOT IN (SELECT id FROM projects)').run();
-console.log(`✓ Removed ${deletedFiles.changes} orphaned files referencing deleted dummy projects.`);
-
-const deletedFolders = db.prepare('DELETE FROM folders WHERE project_id NOT IN (SELECT id FROM projects)').run();
-console.log(`✓ Removed ${deletedFolders.changes} orphaned folders referencing deleted dummy projects.`);
-
-console.log('\n--- VERIFYING CLEAN STATE ---');
-const users = db.prepare('SELECT id, name, email, role FROM users').all();
-console.log('Real Users remaining:', users);
-
-const invites = db.prepare('SELECT id, name, email, role, status FROM invited_members').all();
-console.log('Real Invites remaining:', invites);
-
-const submissions = db.prepare('SELECT id, name, email FROM submitted_emails').all();
-console.log('Real Submissions remaining:', submissions);
-
-const projects = db.prepare('SELECT id, name FROM projects').all();
-console.log('Projects remaining:', projects);
-
-const tasks = db.prepare('SELECT id, name, prefix_key FROM tasks').all();
-console.log('Tasks remaining:', tasks);
-
-const files = db.prepare('SELECT count(*) as count FROM files').get();
-console.log('Files count remaining:', files.count);

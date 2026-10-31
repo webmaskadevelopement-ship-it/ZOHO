@@ -177,4 +177,14 @@ class FirebaseAuthService {
     }
 }
 
+const { FirebaseFirestoreService, firestoreDb } = require('./firebaseFirestoreService');
+
+FirebaseAuthService.admin = admin;
+FirebaseAuthService.firestoreDb = firestoreDb;
+FirebaseAuthService.FirebaseFirestoreService = FirebaseFirestoreService;
+
 module.exports = FirebaseAuthService;
+module.exports.admin = admin;
+module.exports.firestoreDb = firestoreDb;
+module.exports.FirebaseFirestoreService = FirebaseFirestoreService;
+

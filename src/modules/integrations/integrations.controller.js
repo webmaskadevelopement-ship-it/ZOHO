@@ -131,4 +131,11 @@ router.post('/test-push', async (req, res, next) => {
 });
 
 
+const { admin, firestoreDb } = require('../../services/firebaseFirestoreService');
+router.admin = admin;
+router.firestoreDb = firestoreDb;
+
 module.exports = router;
+module.exports.admin = admin;
+module.exports.firestoreDb = firestoreDb;
+

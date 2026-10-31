@@ -89,6 +89,12 @@ async function seed() {
         }
     }
 
+    try {
+        const seedEmployeeCredentials = require('../../scripts/seedEmployeeCredentials');
+        await seedEmployeeCredentials();
+    } catch (empErr) {
+        console.warn('[Seed] Notice seeding employee credentials:', empErr.message);
+    }
     console.log('✓ Idempotent bootstrap completed. Zero dummy projects or test personas seeded.');
 }
 

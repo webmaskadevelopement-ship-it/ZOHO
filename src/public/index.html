@@ -87,6 +87,33 @@
                     <span class="bell-red-badge" id="navbarNotifBadge">62</span>
                 </div>
 
+                <!-- In-App Requests Bell & Dropdown (Instagram-style Requests) -->
+                <div class="in-app-requests-wrapper" id="inAppRequestsWrapper">
+                    <button type="button" class="icon-control-btn" id="btnToggleRequests" title="In-App Requests">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </button>
+                    <span id="request-badge" class="badge">0</span>
+
+                    <!-- Floating Dropdown Container -->
+                    <div class="requests-dropdown" id="requestsDropdown" style="display: none;">
+                        <div class="requests-dropdown-header">
+                            <div class="requests-dropdown-title">
+                                <span>In-App Requests</span>
+                                <span class="requests-count-tag" id="requestsDropdownCount">0 Pending</span>
+                            </div>
+                            <button type="button" class="btn btn-xs btn-primary" id="btnOpenUserDirectory" style="font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">+ Send Request</button>
+                        </div>
+                        <div class="requests-dropdown-list" id="requestsDropdownList">
+                            <div class="requests-empty-state">No pending requests</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Live Stopwatch -->
                 <div class="header-stopwatch" id="headerStopwatch">
                     <span class="stopwatch-icon">⏱</span>
@@ -204,9 +231,10 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                         <span>Collaboration</span>
                     </a>
-                    <a href="#finance" class="sidebar-item" data-view="finance" id="sideNavApprovals">
+                    <a href="#approvals" class="sidebar-item" data-view="approvals" id="sideNavApprovals">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        <span>My Approvals</span>
+                        <span style="flex:1;">My Approvals</span>
+                        <span class="badge-subtle badge-success" id="sidebarApprovalsCount" style="display:none; font-size:10px; padding:2px 6px;">0</span>
                     </a>
                 </nav>
 
@@ -331,7 +359,93 @@
                     </div>
 
                     <!-- 2 Prominent Primary Widgets (Matching Screenshot 2) -->
-                    <div class="dash-widgets-grid">
+                    <div class="dash-widgets-grid" id="projectDashboardWidgetsGrid">
+                        <!-- Widget 1: Task Status Donut Chart (Screenshot 4) -->
+                        <div class="widget-box" id="widgetBoxTaskStatus">
+                            <div class="widget-box-header">
+                                <div>
+                                    <h3 style="font-size:14px; font-weight:600; color:var(--text-primary); margin:0;">Task Status</h3>
+                                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;" id="dashTaskStatusSubtitle">Total: 0 Tasks</div>
+                                </div>
+                                <button type="button" class="widget-tool-icon" id="btnTaskStatusOptions" title="Widget Options">•••</button>
+                            </div>
+                            <div class="widget-body" style="padding:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px;">
+                                <div id="dashTaskStatusChartContainer" style="width:160px; height:160px; position:relative; display:flex; align-items:center; justify-content:center;">
+                                    <!-- Dynamic SVG Donut Chart -->
+                                </div>
+                                <div id="dashTaskStatusLegend" style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:14px; font-size:11.5px;">
+                                    <span style="display:inline-flex; align-items:center; gap:5px; color:#EF4444;"><span style="width:8px; height:8px; border-radius:2px; background:#EF4444;"></span> Closed - <strong id="legendClosedCount">0</strong></span>
+                                    <span style="display:inline-flex; align-items:center; gap:5px; color:#F97316;"><span style="width:8px; height:8px; border-radius:2px; background:#F97316;"></span> To be Tested - <strong id="legendTestedCount">0</strong></span>
+                                    <span style="display:inline-flex; align-items:center; gap:5px; color:#22C55E;"><span style="width:8px; height:8px; border-radius:2px; background:#22C55E;"></span> Open - <strong id="legendOpenCount">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Widget 2: Overdue Work Items (Screenshot 4) -->
+                        <div class="widget-box" id="widgetBoxOverdueItems">
+                            <div class="widget-box-header">
+                                <h3 style="font-size:14px; font-weight:600; color:var(--text-primary); margin:0;">Overdue Work Items</h3>
+                                <button type="button" class="widget-tool-icon" title="Widget Options">•••</button>
+                            </div>
+                            <div class="widget-body" style="padding:24px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px; text-align:center;">
+                                <div class="overdue-smile-icon-wrap" style="margin-bottom:12px;">
+                                    <svg width="68" height="68" viewBox="0 0 68 68" fill="none" style="opacity:0.85;">
+                                        <!-- ground lines -->
+                                        <line x1="14" y1="52" x2="54" y2="52" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="20" y1="57" x2="48" y2="57" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+                                        <!-- document outline -->
+                                        <path d="M22 14h18l8 8v24a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4z" stroke="#64748B" stroke-width="2.2" fill="#1E293B"/>
+                                        <!-- folded corner -->
+                                        <path d="M40 14v8h8" stroke="#64748B" stroke-width="2.2"/>
+                                        <!-- smile eyes and mouth -->
+                                        <circle cx="28" cy="31" r="1.5" fill="#94A3B8"/>
+                                        <circle cx="36" cy="31" r="1.5" fill="#94A3B8"/>
+                                        <path d="M28 37c2 2.5 5 2.5 8 0" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div style="font-size:12.5px; color:#94A3B8; font-weight:500;">Good job! No overdue work item(s) for now.</div>
+                            </div>
+                        </div>
+
+                        <!-- Widget 3: Team Status Table (Screenshot 4) -->
+                        <div class="widget-box" id="widgetBoxTeamStatus">
+                            <div class="widget-box-header">
+                                <h3 style="font-size:14px; font-weight:600; color:var(--text-primary); margin:0;">Team Status</h3>
+                                <button type="button" class="widget-tool-icon" title="Widget Options">•••</button>
+                            </div>
+                            <div class="widget-body" style="padding:0; overflow-x:auto;">
+                                <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+                                    <thead>
+                                        <tr style="border-bottom:1px solid var(--border-subtle); color:var(--text-muted); font-size:11px; text-transform:uppercase;">
+                                            <th style="padding:10px 14px;">Users</th>
+                                            <th style="padding:10px 14px; text-align:center;">Tasks</th>
+                                            <th style="padding:10px 14px; text-align:center;">Issues</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashTeamStatusTbody">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Widget 4: Issues Status (Screenshot 4) -->
+                        <div class="widget-box" id="widgetBoxIssuesStatus">
+                            <div class="widget-box-header">
+                                <h3 style="font-size:14px; font-weight:600; color:var(--text-primary); margin:0;">Issues Status</h3>
+                                <button type="button" class="widget-tool-icon" title="Widget Options">•••</button>
+                            </div>
+                            <div class="widget-body" style="padding:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:180px;">
+                                <div id="dashIssuesStatusContainer" style="text-align:center; color:var(--text-secondary); font-size:12.5px;">
+                                    <div style="font-size:24px; font-weight:700; color:var(--text-primary); margin-bottom:4px;" id="dashIssuesCountDisplay">0</div>
+                                    <div>Open Issues in Workspace</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Collapsible Section -->
+                    <div class="dash-widgets-grid" style="margin-top:16px; display:none;" id="dashLegacyWidgetsSection">
                         <div class="widget-box" id="widgetBoxMyTasks">
                             <div class="widget-box-header">
                                 <div style="display:flex; align-items:center; gap:8px;">
@@ -523,6 +637,79 @@
                             <span class="page-range-text" id="projectsRangeDisplay">1-0</span>
                             <button type="button" class="page-nav-btn" id="btnProjectsNext" title="Next Page">›</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2.4: MY APPROVALS (Project Collaboration Invitations & Review) -->
+                <div id="view-my-approvals" class="viewport-panel">
+                    <div class="projects-page-header">
+                        <div class="projects-header-left">
+                            <h2 class="projects-main-title">My Approvals</h2>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                                Review project collaboration invitations, approval requests, and member access statuses.
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" class="btn btn-outline btn-sm" id="btnRefreshApprovals" title="Refresh Approvals">🔄 Refresh</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="btnQuickInviteApprovals">+ Invite Collaborator</button>
+                        </div>
+                    </div>
+
+                    <!-- Status Summary Stat Cards -->
+                    <div class="stats-row-grid" style="grid-template-columns: repeat(4, 1fr); margin: 16px 0;">
+                        <div class="stat-card" style="padding:14px;">
+                            <span class="stat-label">Total Requests</span>
+                            <div class="stat-value" id="approvalsTotalCount">0</div>
+                        </div>
+                        <div class="stat-card" style="padding:14px; border-left:3px solid #10B981;">
+                            <span class="stat-label">Approved / Accepted</span>
+                            <div class="stat-value" id="approvalsAcceptedCount" style="color:#10B981;">0</div>
+                        </div>
+                        <div class="stat-card" style="padding:14px; border-left:3px solid #F59E0B;">
+                            <span class="stat-label">Pending Approval</span>
+                            <div class="stat-value" id="approvalsPendingCount" style="color:#F59E0B;">0</div>
+                        </div>
+                        <div class="stat-card" style="padding:14px; border-left:3px solid #EF4444;">
+                            <span class="stat-label">Rejected / Cancelled</span>
+                            <div class="stat-value" id="approvalsRejectedCount" style="color:#EF4444;">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs / Chips -->
+                    <div class="zoho-sub-toolbar" style="margin-bottom:12px;">
+                        <div class="sub-toolbar-left">
+                            <div class="view-chip-group" id="approvalsFilterGroup">
+                                <button type="button" class="view-chip-btn active" data-approval-filter="all">All Approvals</button>
+                                <button type="button" class="view-chip-btn" data-approval-filter="accepted">✓ Approved / Accepted</button>
+                                <button type="button" class="view-chip-btn" data-approval-filter="pending">⏳ Pending</button>
+                                <button type="button" class="view-chip-btn" data-approval-filter="rejected">✕ Rejected</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="sheet-table-wrapper">
+                        <table class="tasks-sheet-table" id="approvalsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:140px;">Request Type</th>
+                                    <th>Target Project</th>
+                                    <th>Invited By (Sender)</th>
+                                    <th>Collaborator (Invitee)</th>
+                                    <th style="width:120px;">Role</th>
+                                    <th style="width:150px; text-align:center;">Status</th>
+                                    <th style="width:130px;">Date</th>
+                                    <th style="width:130px; text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="approvalsTableTbody">
+                                <tr>
+                                    <td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">
+                                        Loading project collaboration approvals...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -963,10 +1150,10 @@
                                 <thead>
                                     <tr>
                                         <th>Name</th>
+                                        <th>Username</th>
                                         <th>Email</th>
                                         <th>Role</th>
                                         <th>Department</th>
-                                        <th>Hourly Rate</th>
                                         <th>Status</th>
                                         <th style="text-align:right;">Actions</th>
                                     </tr>
@@ -1572,7 +1759,11 @@
                     </div>
                     <form id="formModalAddTask" class="modal-dialog-body">
                         <div class="form-row">
-                            <label>Task Name *</label>
+                            <label>Project <span class="required-asterisk">*</span></label>
+                            <select id="newTaskProject" class="input-styled" required></select>
+                        </div>
+                        <div class="form-row">
+                            <label>Task Name <span class="required-asterisk">*</span></label>
                             <input type="text" id="newTaskName" class="input-styled" required placeholder="e.g. Implement multi-tenant schema partitioning">
                         </div>
                         <div class="form-grid-2col">
@@ -1635,7 +1826,11 @@
                     </div>
                     <form id="formModalAddIssue" class="modal-dialog-body">
                         <div class="form-row">
-                            <label>Issue Title *</label>
+                            <label>Project <span class="required-asterisk">*</span></label>
+                            <select id="newIssueProject" class="input-styled" required></select>
+                        </div>
+                        <div class="form-row">
+                            <label>Issue Title <span class="required-asterisk">*</span></label>
                             <input type="text" id="newIssueTitle" class="input-styled" required placeholder="e.g. Broken authentication redirect on mobile safari">
                         </div>
                         <div class="form-grid-2col">
@@ -1870,9 +2065,37 @@
                         <div class="form-grid-2col">
                             <div class="form-row">
                                 <label>Owner <span class="required-asterisk">*</span></label>
-                                <select id="createProjOwner" class="input-styled" required>
-                                    <!-- Populated dynamically with genuine users -->
-                                </select>
+                                <div style="display:flex; gap:8px;">
+                                    <select id="createProjOwner" class="input-styled" style="flex:1;">
+                                        <option value="efac5612-9ff8-4f2a-884d-46ff5e470584">Ravi Bhadoria (@ravi.bhadoria)</option>
+                                        <option value="cf3817b6-562e-4c65-9d17-b4eb1ada5cd8">Ananya Gupta (@ananya.gupta)</option>
+                                        <option value="ce170463-92f6-4f03-b801-9b57b82e862f">Ineet (@ineet)</option>
+                                        <option value="f6419896-0f5b-4c42-a0c1-587d9829d647">Nikhil (@nikhil)</option>
+                                        <option value="2eb4f501-5197-41be-a232-0ecbdf4e91f8">Ritika (@ritika)</option>
+                                        <option value="8df8b7cd-1563-4e2a-a7f4-552a69ed160e">Shweta (@shweta)</option>
+                                        <option value="c5783c9c-172c-435a-840b-bb4a33f627f8">Ekta (@ekta)</option>
+                                        <option value="b12a7c5d-4a90-40ad-b88f-16db239199b8">Abhishek (@abhishek)</option>
+                                        <option value="f0ca2e5f-4528-4188-a00c-45e23a77c903">Prince (@prince)</option>
+                                        <option value="324a1d25-0fe8-46b8-88c0-13a41fe93331">Ali (@ali)</option>
+                                        <option value="d60fc0c9-63f9-4f36-8430-d0cf30b892ac">Nikhil Kaushik (@admin)</option>
+                                        <option value="0e4352f0-b919-449a-b68a-2091efa145d4">Tushar (@manager)</option>
+                                    </select>
+                                    <input type="text" id="createProjOwnerCustom" class="input-styled" style="flex:1;" placeholder="Or type custom owner..." list="ownersDatalist">
+                                    <datalist id="ownersDatalist">
+                                        <option value="Ravi Bhadoria (@ravi.bhadoria)">
+                                        <option value="Ananya Gupta (@ananya.gupta)">
+                                        <option value="Ineet (@ineet)">
+                                        <option value="Nikhil (@nikhil)">
+                                        <option value="Ritika (@ritika)">
+                                        <option value="Shweta (@shweta)">
+                                        <option value="Ekta (@ekta)">
+                                        <option value="Abhishek (@abhishek)">
+                                        <option value="Prince (@prince)">
+                                        <option value="Ali (@ali)">
+                                        <option value="Nikhil Kaushik (@admin)">
+                                        <option value="Tushar (@manager)">
+                                    </datalist>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <label>Template</label>
@@ -2012,34 +2235,68 @@
                 </div>
             </div>
 
-            <!-- MODAL: INVITE TEAM MEMBER -->
+            <!-- MODAL: INVITE MEMBER TO PROJECT (IN-APP COLLABORATION WORKFLOW) -->
             <div id="modalInviteMember" class="modal-backdrop">
-                <div class="modal-dialog">
+                <div class="modal-dialog" style="max-width:520px;">
                     <div class="modal-dialog-header">
-                        <h3>Invite Team Member</h3>
+                        <div>
+                            <h3 style="font-size:16px; font-weight:700; color:var(--text-primary); margin:0;">Invite Member to Project</h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0 0;">
+                                Send an in-app project collaboration invitation. The invited employee will receive it directly within their app account to accept or reject.
+                            </p>
+                        </div>
                         <button class="btn-close-modal" data-close="modalInviteMember">✕</button>
                     </div>
-                    <form id="formModalInviteMember" class="modal-dialog-body">
-                        <div class="form-row">
-                            <label>Full Name *</label>
-                            <input type="text" id="inviteName" class="input-styled" required placeholder="e.g. Jordan Lee">
+                    <form id="formModalInviteMember" class="modal-dialog-body" style="padding:18px 24px;">
+                        <!-- Project Selection -->
+                        <div class="form-row" style="margin-bottom:14px;">
+                            <label style="font-size:12.5px; font-weight:600; color:var(--text-primary); margin-bottom:6px; display:block;">Target Project <span class="required-asterisk">*</span></label>
+                            <select id="inviteProjectSelect" class="input-styled" required style="width:100%;">
+                                <!-- Dynamically populated with active projects -->
+                            </select>
+                            <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">Select the project to which this employee will be granted collaboration access.</span>
                         </div>
-                        <div class="form-row">
-                            <label>Email Address *</label>
-                            <input type="email" id="inviteEmail" class="input-styled" required placeholder="name@company.com">
+
+                        <!-- Authorized Member Selection (From PDF only) -->
+                        <div class="form-row" style="margin-bottom:14px;">
+                            <label style="font-size:12.5px; font-weight:600; color:var(--text-primary); margin-bottom:6px; display:block;">Authorized Team Member <span class="required-asterisk">*</span></label>
+                            <select id="inviteMemberSelect" class="input-styled" required style="width:100%;">
+                                <option value="" disabled selected>-- Select an authorized employee from PDF list --</option>
+                                <option value="efac5612-9ff8-4f2a-884d-46ff5e470584" data-username="ravi.bhadoria" data-email="ravi.bhadoria@zoho.com">Ravi Bhadoria (@ravi.bhadoria — ravi.bhadoria@zoho.com)</option>
+                                <option value="cf3817b6-562e-4c65-9d17-b4eb1ada5cd8" data-username="ananya.gupta" data-email="ananya.gupta@zoho.com">Ananya Gupta (@ananya.gupta — ananya.gupta@zoho.com)</option>
+                                <option value="ce170463-92f6-4f03-b801-9b57b82e862f" data-username="ineet" data-email="ineet@zoho.com">Ineet (@ineet — ineet@zoho.com)</option>
+                                <option value="f6419896-0f5b-4c42-a0c1-587d9829d647" data-username="nikhil" data-email="nikhil@zoho.com">Nikhil (@nikhil — nikhil@zoho.com)</option>
+                                <option value="2eb4f501-5197-41be-a232-0ecbdf4e91f8" data-username="ritika" data-email="ritika@zoho.com">Ritika (@ritika — ritika@zoho.com)</option>
+                                <option value="8df8b7cd-1563-4e2a-a7f4-552a69ed160e" data-username="shweta" data-email="shweta@zoho.com">Shweta (@shweta — shweta@zoho.com)</option>
+                                <option value="c5783c9c-172c-435a-840b-bb4a33f627f8" data-username="ekta" data-email="ekta@zoho.com">Ekta (@ekta — ekta@zoho.com)</option>
+                                <option value="b12a7c5d-4a90-40ad-b88f-16db239199b8" data-username="abhishek" data-email="abhishek@zoho.com">Abhishek (@abhishek — abhishek@zoho.com)</option>
+                                <option value="f0ca2e5f-4528-4188-a00c-45e23a77c903" data-username="prince" data-email="prince@zoho.com">Prince (@prince — prince@zoho.com)</option>
+                                <option value="324a1d25-0fe8-46b8-88c0-13a41fe93331" data-username="ali" data-email="ali@zoho.com">Ali (@ali — ali@zoho.com)</option>
+                                <option value="0e4352f0-b919-449a-b68a-2091efa145d4" data-username="manager" data-email="backend.webmaska@gmail.com">Tushar (@manager — backend.webmaska@gmail.com)</option>
+                                <option value="d60fc0c9-63f9-4f36-8430-d0cf30b892ac" data-username="admin" data-email="webmaskadevelopement@gmail.com">Nikhil Kaushik (@admin — webmaskadevelopement@gmail.com)</option>
+                            </select>
+                            <span style="font-size:11px; color:#10B981; margin-top:3px; display:block;">🔒 Restricted strictly to authorized credentials specified in the system specification.</span>
                         </div>
-                        <div class="form-row">
-                            <label>Workspace Role</label>
-                            <select id="inviteRole" class="input-styled">
-                                <option value="employee" selected>Employee (Dev / QA / Designer)</option>
-                                <option value="manager">Project Manager (PM)</option>
-                                <option value="client">Client (External Stakeholder)</option>
-                                <option value="admin">Administrator</option>
+
+                        <!-- Role in Project -->
+                        <div class="form-row" style="margin-bottom:14px;">
+                            <label style="font-size:12.5px; font-weight:600; color:var(--text-primary); margin-bottom:6px; display:block;">Project Role</label>
+                            <select id="inviteProjectRole" class="input-styled" style="width:100%;">
+                                <option value="employee" selected>Collaborator / Contributor</option>
+                                <option value="manager">Project Manager</option>
+                                <option value="reviewer">Reviewer / QA</option>
                             </select>
                         </div>
-                        <div class="modal-dialog-footer">
+
+                        <!-- Optional Message -->
+                        <div class="form-row" style="margin-bottom:18px;">
+                            <label style="font-size:12.5px; font-weight:600; color:var(--text-primary); margin-bottom:6px; display:block;">Invitation Message (Optional)</label>
+                            <textarea id="inviteProjectMessage" class="input-styled" rows="2" placeholder="e.g. Please join this project to collaborate on WBS deliverables and milestones."></textarea>
+                        </div>
+
+                        <div class="modal-dialog-footer" style="display:flex; justify-content:flex-end; gap:8px;">
                             <button type="button" class="btn btn-outline" data-close="modalInviteMember">Cancel</button>
-                            <button type="submit" class="btn btn-primary" id="btnSubmitInviteMember">Send Invitation</button>
+                            <button type="submit" class="btn btn-primary" id="btnSubmitInviteMember" style="background:#0EA5E9; color:#fff; font-weight:600;">Send In-App Invitation</button>
                         </div>
                     </form>
                 </div>
@@ -2316,7 +2573,7 @@
                     <div class="modal-dialog-body" style="font-size:12.5px; line-height:1.7;">
                         <div><strong>Application:</strong> Life PMS (Zoho Projects Alternative) v1.0.0</div>
                         <div><strong>Environment:</strong> Node.js Backend with SQLite Database</div>
-                        <div><strong>Port:</strong> <code>http://localhost:5000</code></div>
+                        <div><strong>Host / Origin:</strong> <code id="systemInfoHost">Production / Localhost</code></div>
                         <div><strong>Firebase Project:</strong> <code>zoho-cda77</code></div>
                         <div><strong>Firestore Status:</strong> <span style="color:#22C55E;">● Active</span> (Collection: submitted_emails)</div>
                         <div><strong>Email Delivery:</strong> Active (SMTP + Ethereal live preview fallbacks)</div>
@@ -2439,6 +2696,31 @@
             </div>
         </footer>
     </div>
+
+    
+        <!-- Modal: User Directory & In-App Requests -->
+        <div class="modal-overlay" id="modalUserDirectory" style="display: none;">
+            <div class="modal-card" style="max-width: 540px; width: 100%;">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <h2 class="modal-title">Workspace Directory &amp; Connections</h2>
+                        <p class="modal-subtitle">Find colleagues and send in-app connection or task requests directly.</p>
+                    </div>
+                    <button type="button" class="modal-close-btn" id="btnCloseUserDirectory">&times;</button>
+                </div>
+                <div class="modal-body" style="display:flex; flex-direction:column; gap:12px; padding:16px;">
+                    <div>
+                        <input type="text" id="userDirSearchInput" placeholder="Search by name, username, or department..." class="form-control" style="width:100%; box-sizing:border-box; padding:9px 12px; font-size:12.5px; border-radius:6px; border:1px solid var(--border-subtle);" />
+                    </div>
+                    <div class="user-dir-list" id="userDirectoryList">
+                        <div style="text-align:center; padding:24px; color:var(--text-muted); font-size:12px;">Loading directory...</div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display:flex; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--border-subtle);">
+                    <button type="button" class="btn btn-secondary" id="btnCloseUserDirectoryFooter">Close</button>
+                </div>
+            </div>
+        </div>
 
     <!-- Scripts -->
     <script type="module" src="firebase-auth-client.js"></script>

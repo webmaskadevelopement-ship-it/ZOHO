@@ -26,6 +26,8 @@ const customFieldsController = require('./modules/customFields/customFields.cont
 const invoicesController = require('./modules/invoices/invoices.controller');
 const tagsController = require('./modules/tags/tags.controller');
 const aiController = require('./modules/ai/ai.controller');
+const requestsController = require('./modules/requests/requests.controller');
+const usersController = require('./modules/users/users.controller');
 const WorkerRunner = require('./services/workers/workerRunner');
 
 const app = express();
@@ -102,6 +104,8 @@ app.use('/api/v1/views', viewsController);
 app.use('/api/v1/reports', reportsController);
 app.use('/api/v1/integrations', integrationsController);
 app.use('/api/v1/ai', aiController);
+app.use('/api/v1/requests', requestsController);
+app.use('/api/v1/users', usersController);
 
 // Manual trigger for background workers / cron tasks
 app.post('/api/v1/workers/trigger', (req, res) => {

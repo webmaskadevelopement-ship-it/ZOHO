@@ -132,6 +132,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEditUserRoleModal();
     setupPublicWebToIntakeModal();
     setupHeaderButtons();
+    setupInAppRequests();
+    setupApprovalsView();
     setupSignOut();
 
     // Check saved session
@@ -158,6 +160,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateUserProfileUI();
     applyRoleGuards(currentUserRole);
     await loadInitialData();
+    await fetchIncomingRequests();
+    if (window.firebaseAuthClient?.listenToRealtimeNotifications && currentUser?.id) {
+        window.firebaseAuthClient.listenToRealtimeNotifications(currentUser.id, () => {
+            fetchIncomingRequests();
+        });
+    }
 });
 
 /* ==========================================================================
@@ -283,7 +291,7 @@ function applyRoleGuards(role) {
     addBtns.forEach(btn => { if (btn) btn.style.display = isClient ? 'none' : ''; });
 
     const inviteBtn = document.getElementById('btnInviteUsers');
-    if (inviteBtn) inviteBtn.style.display = (isClient || isEmployee) ? 'none' : 'flex';
+    if (inviteBtn) inviteBtn.style.display = isClient ? 'none' : 'flex';
 }
 
 /* ==========================================================================
@@ -351,6 +359,20 @@ function handleStaticApi(endpoint, options = {}) {
             }
 
             return { success: true, data: newProj };
+        }
+        if (currentUser && currentUser.role !== 'admin') {
+            const myId = currentUser.id;
+            const myEmail = currentUser.email;
+            projs = projs.filter(p => {
+                const isPublic = p.is_public === 1 || p.isPublic === 1 || p.isPublic === true;
+                const isOwner = p.owner_id === myId || p.ownerId === myId || p.owner_email === myEmail;
+                let members = [];
+                try {
+                    members = Array.isArray(p.member_ids) ? p.member_ids : (typeof p.member_ids === 'string' ? JSON.parse(p.member_ids || '[]') : []);
+                } catch (e) { members = []; }
+                const isMember = members.includes(myId) || members.includes(myEmail);
+                return isPublic || isOwner || isMember;
+            });
         }
         return { success: true, data: projs };
     }
@@ -813,6 +835,189 @@ function handleStaticApi(endpoint, options = {}) {
         submitted.push({ email: body.email, date: new Date().toISOString() });
         localStorage.setItem('life_pms_submitted_emails', JSON.stringify(submitted));
         return { success: true };
+    }
+
+    // 24. In-App Requests System Fallback & Offline Persistence
+    if (endpoint.startsWith('/api/v1/requests')) {
+        let requests = JSON.parse(localStorage.getItem('life_pms_in_app_requests') || '[]');
+
+        // GET /api/v1/requests/approvals
+        if (endpoint.includes('/approvals')) {
+            let approvals = [...requests];
+            if (currentUser && currentUser.role !== 'admin') {
+                const myId = currentUser.id;
+                const myEmail = currentUser.email;
+                approvals = approvals.filter(r => {
+                    return r.sender_id === myId || r.receiver_id === myId ||
+                           (r.sender && (r.sender.id === myId || r.sender.email === myEmail)) ||
+                           (r.receiver && (r.receiver.id === myId || r.receiver.email === myEmail)) ||
+                           (r.payload && (r.payload.inviterEmail === myEmail || r.payload.receiverEmail === myEmail));
+                });
+            }
+            return {
+                success: true,
+                count: approvals.length,
+                data: approvals.map(r => {
+                    const payload = r.payload || {};
+                    return {
+                        id: r.id,
+                        request_type: r.request_type || 'PROJECT_INVITE',
+                        target_entity_id: r.target_entity_id || payload.projectId,
+                        status: r.status || 'PENDING',
+                        created_at: r.created_at || new Date().toISOString(),
+                        responded_at: r.responded_at || null,
+                        payload: payload,
+                        sender: r.sender || {
+                            id: r.sender_id,
+                            name: payload.inviterName || 'Administrator',
+                            email: payload.inviterEmail || 'admin@zoho.com',
+                            username: payload.inviterUsername || 'admin'
+                        },
+                        receiver: r.receiver || {
+                            id: r.receiver_id,
+                            name: payload.receiverName || 'Team Member',
+                            email: payload.receiverEmail || 'employee@zoho.com',
+                            username: payload.receiverUsername || 'employee'
+                        },
+                        project: r.project || {
+                            id: r.target_entity_id || payload.projectId,
+                            name: payload.projectName || 'Project Workspace',
+                            key_prefix: payload.projectPrefix || 'PRJ'
+                        },
+                        role: payload.role || 'employee',
+                        is_approved: r.status === 'ACCEPTED' || r.status === 'APPROVED',
+                        approval_status: r.status === 'ACCEPTED' ? 'Approved / Accepted' : (r.status === 'PENDING' ? 'Pending Approval' : (r.status === 'REJECTED' ? 'Rejected' : r.status))
+                    };
+                })
+            };
+        }
+
+        // GET /api/v1/requests/incoming
+        if (endpoint.includes('/incoming')) {
+            const myId = currentUser?.id;
+            const myEmail = currentUser?.email;
+            const incoming = requests.filter(r => {
+                const isForMe = r.receiver_id === myId || (r.receiver && (r.receiver.id === myId || r.receiver.email === myEmail)) || (r.payload && r.payload.receiverEmail === myEmail);
+                return isForMe && r.status === 'PENDING';
+            });
+            return { success: true, count: incoming.length, data: incoming };
+        }
+
+        // GET /api/v1/requests/sent
+        if (endpoint.includes('/sent')) {
+            const myId = currentUser?.id;
+            const sent = requests.filter(r => r.sender_id === myId || (r.sender && r.sender.id === myId));
+            return { success: true, count: sent.length, data: sent };
+        }
+
+        // PATCH /api/v1/requests/:id/respond
+        if (endpoint.includes('/respond') && method === 'PATCH') {
+            const parts = endpoint.split('/');
+            const reqId = parts[parts.indexOf('requests') + 1];
+            const action = body.action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED';
+            const reqIdx = requests.findIndex(r => r.id === reqId);
+            if (reqIdx !== -1) {
+                requests[reqIdx].status = action;
+                requests[reqIdx].responded_at = new Date().toISOString();
+                localStorage.setItem('life_pms_in_app_requests', JSON.stringify(requests));
+
+                // If ACCEPT and PROJECT_INVITE: grant project access
+                if (action === 'ACCEPTED' && requests[reqIdx].target_entity_id) {
+                    const targetProjId = requests[reqIdx].target_entity_id;
+                    let projs = JSON.parse(localStorage.getItem('life_pms_projects') || '[]');
+                    const pIdx = projs.findIndex(p => p.id === targetProjId);
+                    if (pIdx !== -1) {
+                        let members = [];
+                        try {
+                            members = Array.isArray(projs[pIdx].member_ids) ? projs[pIdx].member_ids : (typeof projs[pIdx].member_ids === 'string' ? JSON.parse(projs[pIdx].member_ids || '[]') : []);
+                        } catch (e) { members = []; }
+                        const receiverId = requests[reqIdx].receiver_id || currentUser?.id;
+                        if (receiverId && !members.includes(receiverId)) {
+                            members.push(receiverId);
+                            projs[pIdx].member_ids = members;
+                            localStorage.setItem('life_pms_projects', JSON.stringify(projs));
+                            if (window.firebaseAuthClient?.saveProjectToFirestore) {
+                                window.firebaseAuthClient.saveProjectToFirestore(projs[pIdx]).catch(() => {});
+                            }
+                        }
+                    }
+                }
+            }
+            return { success: true, data: { status: action } };
+        }
+
+        // DELETE /api/v1/requests/:id
+        if (method === 'DELETE') {
+            const parts = endpoint.split('/');
+            const reqId = parts[parts.indexOf('requests') + 1];
+            requests = requests.filter(r => r.id !== reqId);
+            localStorage.setItem('life_pms_in_app_requests', JSON.stringify(requests));
+            return { success: true };
+        }
+
+        // POST /api/v1/requests
+        if (method === 'POST') {
+            const newReq = {
+                id: 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
+                sender_id: currentUser?.id || 'admin',
+                receiver_id: body.receiver_id || '',
+                request_type: body.request_type || 'PROJECT_INVITE',
+                target_entity_id: body.target_entity_id || body.payload?.projectId,
+                payload: body.payload || {},
+                status: 'PENDING',
+                created_at: new Date().toISOString(),
+                responded_at: null,
+                sender: {
+                    id: currentUser?.id,
+                    name: currentUser?.name || 'Administrator',
+                    email: currentUser?.email || 'admin@zoho.com',
+                    username: currentUser?.username || 'admin'
+                },
+                receiver: {
+                    id: body.receiver_id,
+                    name: body.payload?.receiverName || 'Collaborator',
+                    email: body.payload?.receiverEmail || body.email || '',
+                    username: body.payload?.receiverUsername || body.username || ''
+                },
+                project: {
+                    id: body.target_entity_id || body.payload?.projectId,
+                    name: body.payload?.projectName || 'Project Workspace',
+                    key_prefix: body.payload?.projectPrefix || 'PRJ'
+                },
+                role: body.payload?.role || 'employee',
+                is_approved: false,
+                approval_status: 'Pending Approval'
+            };
+            requests.unshift(newReq);
+            localStorage.setItem('life_pms_in_app_requests', JSON.stringify(requests));
+            return { success: true, data: newReq };
+        }
+
+        return { success: true, data: requests };
+    }
+
+    // 25. Users Directory Fallback (Exact 10 Authorized PDF Employees)
+    if (endpoint.includes('/users/directory')) {
+        const authorizedEmployees = [
+            { id: 'usr-ravi', name: 'Ravi Bhadoria', username: 'ravi.bhadoria', email: 'ravi.bhadoria@zoho.com', role: 'employee', department: 'Development', status: 'active' },
+            { id: 'usr-ananya', name: 'Ananya Gupta', username: 'ananya.gupta', email: 'ananya.gupta@zoho.com', role: 'employee', department: 'UI/UX Design', status: 'active' },
+            { id: 'usr-ineet', name: 'Ineet', username: 'ineet', email: 'ineet@zoho.com', role: 'employee', department: 'Quality Assurance', status: 'active' },
+            { id: 'usr-nikhil', name: 'Nikhil', username: 'nikhil', email: 'nikhil@zoho.com', role: 'employee', department: 'Engineering', status: 'active' },
+            { id: 'usr-ritika', name: 'Ritika', username: 'ritika', email: 'ritika@zoho.com', role: 'employee', department: 'Product Management', status: 'active' },
+            { id: 'usr-shweta', name: 'Shweta', username: 'shweta', email: 'shweta@zoho.com', role: 'employee', department: 'Operations', status: 'active' },
+            { id: 'usr-ekta', name: 'Ekta', username: 'ekta', email: 'ekta@zoho.com', role: 'employee', department: 'Frontend', status: 'active' },
+            { id: 'usr-abhishek', name: 'Abhishek', username: 'abhishek', email: 'abhishek@zoho.com', role: 'employee', department: 'Backend Systems', status: 'active' },
+            { id: 'usr-prince', name: 'Prince', username: 'prince', email: 'prince@zoho.com', role: 'employee', department: 'Cloud & DevOps', status: 'active' },
+            { id: 'usr-ali', name: 'Ali', username: 'ali', email: 'ali@zoho.com', role: 'employee', department: 'Mobile Engineering', status: 'active' }
+        ];
+        return {
+            success: true,
+            count: authorizedEmployees.length,
+            data: authorizedEmployees.map(u => ({
+                ...u,
+                connection_status: u.id === currentUser?.id ? 'SELF' : 'NONE'
+            }))
+        };
     }
 
     // Default safe response
@@ -1291,6 +1496,7 @@ const panelMap = {
     'projects': 'view-all-projects',
     'allprojects': 'view-all-projects',
     'collaboration': 'view-collaboration',
+    'approvals': 'view-my-approvals',
     'tasks': 'view-project-tasks',
     'issues': 'view-project-issues',
     'phases': 'view-project-phases',
@@ -1307,7 +1513,7 @@ function switchActiveView(viewName, updateHash = true) {
     const targetPanelId = panelMap[viewName] || 'view-home';
 
     // Toggle Top Navigation Tabs & Project Identifier based on Scope (Exact match for Images 1, 2, 3, 5)
-    const isGlobalScope = (viewName === 'home' || viewName === 'projects' || viewName === 'allprojects' || viewName === 'collaboration');
+    const isGlobalScope = (viewName === 'home' || viewName === 'projects' || viewName === 'allprojects' || viewName === 'collaboration' || viewName === 'approvals');
     const topNavTabs = document.getElementById('topNavTabs');
     const activeProjectTag = document.getElementById('navbarActiveProjectTag');
     if (topNavTabs) topNavTabs.style.display = isGlobalScope ? 'none' : 'flex';
@@ -1333,7 +1539,7 @@ function switchActiveView(viewName, updateHash = true) {
     }
 
     if (updateHash) {
-        if (viewName === 'home' || viewName === 'projects' || viewName === 'collaboration') {
+        if (viewName === 'home' || viewName === 'projects' || viewName === 'collaboration' || viewName === 'approvals') {
             window.location.hash = `#${viewName}`;
         } else if (currentProjectId) {
             window.location.hash = `#project/${currentProjectId}/${viewName}`;
@@ -1404,6 +1610,9 @@ async function loadPanelData(panelId) {
             break;
         case 'view-collaboration':
             await loadCollaborationView();
+            break;
+        case 'view-my-approvals':
+            await loadApprovalsView();
             break;
         case 'view-project-tasks':
             await loadCurrentTaskView();
@@ -1865,20 +2074,122 @@ async function loadGlobalDashboardStats() {
     }
 }
 
-function renderDashboardWidgets(globalData, tasks, issues) {
-    // 1. My Tasks (Matching Screenshot 1)
-    const myTasksContainer = document.getElementById('widgetMyTasksList');
-    const myTasksCountEl = document.getElementById('widgetMyTasksCount');
-    const myTasks = tasks.slice(0, 5);
 
-    if (myTasksCountEl) myTasksCountEl.textContent = globalData?.stats?.openTasks || myTasks.length;
+function openAddTaskForList(taskListId) {
+    const tlSelect = document.getElementById('taskTaskListSelect');
+    if (tlSelect && taskListId) tlSelect.value = taskListId;
+    openModal('modalAddTask');
+}
+window.openAddTaskForList = openAddTaskForList;
+
+function openAddTaskListModal() {
+    const name = prompt('Enter new Task List name:');
+    if (name && name.trim()) {
+        apiFetch(`/api/v1/task-lists/project/${currentProjectId}`, {
+            method: 'POST',
+            body: JSON.stringify({ name: name.trim() })
+        }).then(res => {
+            if (res.success) {
+                loadTaskSheetView();
+            }
+        });
+    }
+}
+window.openAddTaskListModal = openAddTaskListModal;
+
+function renderDashboardWidgets(globalData, tasks, issues) {
+    // Screenshot 4: Widget 1 - Task Status Donut Chart & Legend
+    const totalTasks = tasks.length;
+    const closedCount = tasks.filter(t => t.is_completed || t.status_id === 'completed' || t.status_id === 'closed').length;
+    const testedCount = tasks.filter(t => t.status_id === 'to_be_tested' || (t.tags && t.tags.includes('testing'))).length;
+    const openCount = totalTasks - closedCount - testedCount;
+
+    const subtitleEl = document.getElementById('dashTaskStatusSubtitle');
+    if (subtitleEl) subtitleEl.textContent = `Total: ${totalTasks} Tasks`;
+
+    const legendClosed = document.getElementById('legendClosedCount');
+    const legendTested = document.getElementById('legendTestedCount');
+    const legendOpen = document.getElementById('legendOpenCount');
+    if (legendClosed) legendClosed.textContent = closedCount;
+    if (legendTested) legendTested.textContent = testedCount;
+    if (legendOpen) legendOpen.textContent = Math.max(0, openCount);
+
+    const chartContainer = document.getElementById('dashTaskStatusChartContainer');
+    if (chartContainer) {
+        if (totalTasks === 0) {
+            chartContainer.innerHTML = `
+                <svg width="140" height="140" viewBox="0 0 42 42">
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#1E293B" stroke-width="4"></circle>
+                    <text x="50%" y="48%" text-anchor="middle" fill="#64748B" font-size="4" font-weight="600">0 Tasks</text>
+                    <text x="50%" y="58%" text-anchor="middle" fill="#475569" font-size="2.6">Empty</text>
+                </svg>
+            `;
+        } else {
+            const closedPct = (closedCount / totalTasks) * 100;
+            const testedPct = (testedCount / totalTasks) * 100;
+            const openPct = Math.max(0, 100 - closedPct - testedPct);
+
+            let dashClosed = closedPct;
+            let dashTested = testedPct;
+            let dashOpen = openPct;
+
+            chartContainer.innerHTML = `
+                <svg width="140" height="140" viewBox="0 0 42 42">
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#1E293B" stroke-width="4.5"></circle>
+                    ${closedPct > 0 ? `<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#EF4444" stroke-width="4.5" stroke-dasharray="${dashClosed} ${100 - dashClosed}" stroke-dashoffset="25"></circle>` : ''}
+                    ${testedPct > 0 ? `<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#FB923C" stroke-width="4.5" stroke-dasharray="${dashTested} ${100 - dashTested}" stroke-dashoffset="${25 - dashClosed}"></circle>` : ''}
+                    ${openPct > 0 ? `<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#22C55E" stroke-width="4.5" stroke-dasharray="${dashOpen} ${100 - dashOpen}" stroke-dashoffset="${25 - dashClosed - dashTested}"></circle>` : ''}
+                    <text x="50%" y="52%" text-anchor="middle" fill="#F8FAFC" font-size="5" font-weight="700">${totalTasks}</text>
+                </svg>
+            `;
+        }
+    }
+
+    // Screenshot 4: Widget 3 - Team Status Table
+    const teamTbody = document.getElementById('dashTeamStatusTbody');
+    if (teamTbody) {
+        if (liveUsersCache.length === 0) {
+            teamTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:18px; color:var(--text-muted);">No teammates assigned yet.</td></tr>';
+        } else {
+            teamTbody.innerHTML = liveUsersCache.slice(0, 6).map(u => {
+                const uName = u.name || u.user_name || u.email?.split('@')[0] || 'User';
+                const initial = uName.charAt(0).toUpperCase();
+                const uId = u.id || u.user_id;
+                const userTasksCount = tasks.filter(t => {
+                    const rawOwners = Array.isArray(t.owner_ids) ? t.owner_ids : (typeof t.owner_ids === 'string' ? JSON.parse(t.owner_ids || '[]') : []);
+                    return rawOwners.includes(uId) || t.assignee_id === uId;
+                }).length;
+                const userIssuesCount = issues.filter(i => i.assignee_id === uId).length;
+
+                return `
+                    <tr style="border-bottom:1px solid var(--border-subtle);">
+                        <td style="padding:8px 14px; display:flex; align-items:center; gap:8px;">
+                            <span style="width:24px; height:24px; border-radius:50%; background:#334155; color:#F8FAFC; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;">${initial}</span>
+                            <span style="font-weight:500; color:var(--text-primary);">${escapeHtml(uName)}</span>
+                        </td>
+                        <td style="padding:8px 14px; text-align:center; font-weight:600; color:var(--text-secondary);">${userTasksCount}</td>
+                        <td style="padding:8px 14px; text-align:center; font-weight:600; color:var(--text-secondary);">${userIssuesCount}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+
+    // Screenshot 4: Widget 4 - Issues Status
+    const openIssuesCount = issues.filter(i => !i.is_closed).length;
+    const issuesCountDisplay = document.getElementById('dashIssuesCountDisplay');
+    if (issuesCountDisplay) issuesCountDisplay.textContent = openIssuesCount;
+
+    // Legacy My Tasks Widget
+    const myTasksContainer = document.getElementById('widgetMyTasksList');
+    const myTasks = tasks.slice(0, 5);
     if (myTasksContainer) {
         myTasksContainer.innerHTML = myTasks.length === 0
             ? '<div class="widget-empty-state" style="padding:24px; text-align:center; color:var(--text-secondary); font-size:12px;">No tasks assigned to you.</div>'
             : myTasks.map(t => {
                 const currentProj = allProjectsCache.find(p => p.id === (t.projectId || currentProjectId));
                 const projName = currentProj ? currentProj.name : 'Project Task';
-                const dateStr = t.end_date ? t.end_date.split('T')[0] : (t.start_date ? t.start_date.split('T')[0] : '29-10-2026');
+                const dateStr = t.end_date ? t.end_date.split('T')[0] : (t.start_date ? t.start_date.split('T')[0] : '2026-10-31');
                 return `
                     <div class="widget-task-item" data-task-id="${t.id}" style="cursor:pointer; padding:10px 14px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
                         <div>
@@ -1889,89 +2200,8 @@ function renderDashboardWidgets(globalData, tasks, issues) {
                     </div>
                 `;
             }).join('');
-
-        myTasksContainer.querySelectorAll('.widget-task-item').forEach(el => {
-            el.addEventListener('click', () => openTaskDrawer(el.getAttribute('data-task-id')));
-        });
     }
 
-    // 2. My Issues (Matching Screenshot 1)
-    const issuesContainer = document.getElementById('widgetMyIssuesList');
-    const issuesCountEl = document.getElementById('widgetIssuesCount');
-    const openIssues = issues.filter(i => !i.is_closed);
-
-    if (issuesCountEl) issuesCountEl.textContent = openIssues.length;
-    if (issuesContainer) {
-        issuesContainer.innerHTML = openIssues.length === 0
-            ? `
-                <div style="padding:36px 16px; text-align:center; color:var(--text-secondary); display:flex; flex-direction:column; align-items:center; gap:8px;">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><line x1="13.5" y1="16.5" x2="16" y2="19"/></svg>
-                    <div style="font-size:12.5px; color:var(--text-secondary);">No Issues assigned to you yet.</div>
-                </div>
-            `
-            : openIssues.slice(0, 5).map(i => `
-                <div class="widget-task-item" data-issue-id="${i.id}" style="cursor:pointer; padding:9px 12px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-                    <span class="widget-task-title">${escapeHtml(i.title)}</span>
-                    <span class="badge-subtle badge-critical" style="font-size:10px; font-weight:600;">${i.severity}</span>
-                </div>
-            `).join('');
-
-        issuesContainer.querySelectorAll('.widget-task-item').forEach(el => {
-            el.addEventListener('click', () => openIssueDrawer(el.getAttribute('data-issue-id')));
-        });
-    }
-
-    // 3. Due Today
-    const dueContainer = document.getElementById('widgetDueTodayList');
-    if (dueContainer) {
-        dueContainer.innerHTML = '<div style="padding:24px 16px; text-align:center; font-size:12px; color:var(--text-secondary);">No work items due today.</div>';
-    }
-
-    // 4. Overdue Items
-    const overdueContainer = document.getElementById('widgetOverdueList');
-    if (overdueContainer) {
-        overdueContainer.innerHTML = '<div style="padding:24px 16px; text-align:center; font-size:12px; color:var(--text-secondary);">No overdue work items.</div>';
-    }
-
-    // Team Workload List
-    const workloadList = document.getElementById('widgetTeamWorkloadList');
-    if (workloadList) {
-        const users = (liveUsersCache.length > 0 ? liveUsersCache : (currentUser ? [currentUser] : [])).slice(0, 5);
-        if (users.length === 0) {
-            workloadList.innerHTML = '<div style="padding:16px; font-size:12px; color:var(--text-secondary); text-align:center;">No team members allocated.</div>';
-        } else {
-            workloadList.innerHTML = users.map((u, i) => {
-                const name = u.name || u.user_name || (u.email ? u.email.split('@')[0] : 'User');
-                const hours = 32 + (i * 3);
-                const cap = 40;
-                const pct = Math.min(100, Math.round((hours / cap) * 100));
-                return `
-                    <div style="padding:8px 12px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <div style="font-weight:600; font-size:12px;">${escapeHtml(name)} <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">(${u.role || 'member'})</span></div>
-                            <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${hours}h / ${cap}h standard</div>
-                        </div>
-                        <span class="badge-subtle badge-success" style="font-size:10.5px;">${pct}% Alloc</span>
-                    </div>
-                `;
-            }).join('');
-        }
-    }
-
-    // Activity Stream List
-    const activityList = document.getElementById('widgetActivityStreamList');
-    if (activityList) {
-        activityList.innerHTML = `
-            <div style="padding:8px 12px; font-size:12px; border-bottom:1px solid var(--border-subtle);">
-                <span style="color:var(--theme-sky); font-weight:600;">System</span> initialized enterprise project workspace
-                <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">Live sync active</div>
-            </div>
-            <div style="padding:8px 12px; font-size:12px;">
-                <span style="color:var(--theme-sky); font-weight:600;">${escapeHtml(currentUser?.name || 'Workspace')}</span> active session verified
-                <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">Just now</div>
-            </div>
-        `;
-    }
 }
 
 function renderMilestonesRoadmap(phases) {
@@ -2073,45 +2303,121 @@ async function loadCurrentTaskView() {
 
 // 6.1 Task Sheet View (Virtualized WBS Spreadsheet Grid)
 async function loadTaskSheetView() {
-    const res = await apiFetch(`/api/v1/tasks/project/${currentProjectId}${currentTasksFilter === 'my' ? '?my=true' : ''}`);
-    const tasks = res.data || [];
-    allTasksCache = tasks;
+    if (!currentProjectId) {
+        currentProjectId = sessionStorage.getItem('life_pms_project_id') || allProjectsCache[0]?.id || '';
+    }
+    if (!currentProjectId && allProjectsCache.length === 0) {
+        await loadProjectsList();
+        if (allProjectsCache.length > 0) {
+            currentProjectId = allProjectsCache[0].id;
+        }
+    }
+    updateNavbarProjectName();
 
     const tbody = document.getElementById('taskSheetTbody');
     const totalCountEl = document.getElementById('taskSheetTotalCount');
+
+    if (!currentProjectId) {
+        if (totalCountEl) totalCountEl.innerHTML = '<span>Total Count : <strong style="color:var(--text-primary); margin-left:4px;">0</strong></span>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 28px; color: var(--text-secondary);">No project selected. Click <strong>+ New Project</strong> or select a project from the sidebar to view tasks.</td></tr>';
+        return;
+    }
+
+    const [res, tlRes] = await Promise.all([
+        apiFetch(`/api/v1/tasks/project/${currentProjectId}${currentTasksFilter === 'my' ? '?my=true' : ''}`),
+        apiFetch(`/api/v1/task-lists/project/${currentProjectId}`).catch(() => ({ success: false }))
+    ]);
+    const tasks = res.data || [];
+    allTasksCache = tasks;
+    const taskLists = (tlRes && tlRes.success && Array.isArray(tlRes.data)) ? tlRes.data : allTaskListsCache;
+    allTaskListsCache = taskLists;
+
     if (totalCountEl) totalCountEl.innerHTML = `<span>Total Count : <strong style="color:var(--text-primary); margin-left:4px;">${tasks.length}</strong></span>`;
 
     if (!tbody) return;
     if (tasks.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-secondary);">No tasks found. Click "Add Task" to create one.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 28px; color: var(--text-secondary);">No tasks configured yet. Click <strong>Add Task</strong> to create one.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = tasks.map(t => {
-        const isCompleted = t.is_completed || t.status_id === 'completed';
-        const statusLabel = isCompleted ? 'Completed' : (t.status_id === 'in_progress' ? 'In Progress' : 'Open');
-        const statusClass = isCompleted ? 'status-open' : (t.status_id === 'in_progress' ? 'status-progress' : 'status-open');
+    const currentProj = allProjectsCache.find(p => p.id === currentProjectId);
+    const projName = currentProj ? currentProj.name : 'Project';
+
+    function renderTaskRow(t) {
+        const isCompleted = t.is_completed || t.status_id === 'completed' || t.status_id === 'closed';
+        const isTesting = t.status_id === 'to_be_tested' || (t.tags && t.tags.includes('testing'));
+        const statusLabel = isCompleted ? 'Closed' : (isTesting ? 'To be Tested' : (t.status_id === 'in_progress' ? 'In Progress' : 'Open'));
+        const statusClass = isCompleted ? 'status-closed' : (isTesting ? 'status-to-be-tested' : (t.status_id === 'in_progress' ? 'status-progress' : 'status-open'));
         const taskId = t.id;
-        const taskKey = t.prefix_key || ('AE1-T' + (t.sequence_number || 1));
+        const taskKey = t.prefix_key || ('RP1-T' + (t.sequence_number || 1));
 
         const rawOwners = Array.isArray(t.owner_ids) ? t.owner_ids : (typeof t.owner_ids === 'string' ? JSON.parse(t.owner_ids || '[]') : []);
-        const firstOwnerId = rawOwners.length > 0 ? rawOwners[0] : null;
+        const firstOwnerId = t.assignee_id || (rawOwners.length > 0 ? rawOwners[0] : null);
         const owner = firstOwnerId ? getUserDisplay(firstOwnerId) : null;
 
         return `
             <tr class="task-item-row" data-task-id="${taskId}">
                 <td><input type="checkbox" class="task-row-checkbox" ${isCompleted ? 'checked' : ''}></td>
-                <td><span class="task-id-tag task-key-link" data-task-id="${taskId}" style="cursor:pointer;" title="Inspect Task">${taskKey}</span></td>
-                <td><a href="javascript:void(0)" class="task-name-link" data-task-id="${taskId}" title="Open Task Details">${t.name}</a></td>
+                <td><span class="task-id-tag task-key-link" data-task-id="${taskId}" style="cursor:pointer; font-weight:600;" title="Inspect Task">${taskKey}</span></td>
+                <td><a href="javascript:void(0)" class="task-name-link" data-task-id="${taskId}" title="Open Task Details" style="font-weight:500;">${escapeHtml(t.name)}</a></td>
+                <td style="color:var(--text-secondary); font-size:12px;">${escapeHtml(projName)}</td>
                 <td class="owner-cell">
-                    ${owner && owner.name !== 'Unassigned' ? `<span class="owner-avatar-icon">${owner.initials}</span><span>${owner.name}</span>` : `<span class="owner-avatar-icon unassigned"></span><span style="color:var(--text-muted);">Unassigned</span>`}
+                    ${owner && owner.name !== 'Unassigned' ? `<span class="owner-avatar-icon" style="background:#475569; color:#fff; font-size:10px;">${owner.initials}</span><span style="font-size:12px;">${owner.name}</span>` : `<span class="owner-avatar-icon unassigned"></span><span style="color:var(--text-muted); font-size:12px;">Unassigned</span>`}
                 </td>
                 <td><span class="status-pill-zoho ${statusClass}">${statusLabel}</span></td>
-                <td><span class="task-tag-pill">${t.tags ? (Array.isArray(t.tags) ? t.tags[0] : 'Engineering') : 'General'}</span></td>
-                <td style="color:var(--text-secondary); font-family:var(--font-mono); font-size:11.5px;">${t.start_date ? t.start_date.split('T')[0] : '2026-10-24'}</td>
+                <td style="color:var(--text-secondary); font-family:var(--font-mono); font-size:11.5px;">${t.start_date ? t.start_date.split('T')[0] : '2026-10-31'}</td>
             </tr>
         `;
-    }).join('');
+    }
+
+    if (taskLists.length > 0) {
+        let fullHtml = '';
+        taskLists.forEach(tl => {
+            const listTasks = tasks.filter(t => t.task_list_id === tl.id);
+            fullHtml += `
+                <tr class="tasklist-group-header-row" style="background:#181B20; border-bottom:1px solid #232730;">
+                    <td colspan="7" style="padding:8px 12px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:10px; color:var(--text-muted);">▼</span>
+                                <span style="font-size:12px; color:var(--text-muted);">☰</span>
+                                <strong style="color:var(--text-primary); font-size:13px;">${escapeHtml(tl.name)} (${listTasks.length})</strong>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:12px; font-size:11.5px;">
+                                <button type="button" class="btn-group-action" onclick="openAddTaskForList('${tl.id}')" style="background:none; border:none; color:var(--theme-sky); cursor:pointer; font-size:11.5px;">+ Add Task</button>
+                                <button type="button" class="btn-group-action" onclick="openAddTaskListModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:11.5px;">Add Task List</button>
+                                <span style="color:var(--text-muted); font-size:11.5px; cursor:pointer;">💡 Suggestions</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            if (listTasks.length > 0) {
+                fullHtml += listTasks.map(renderTaskRow).join('');
+            }
+        });
+
+        // Uncategorized tasks if any
+        const uncatTasks = tasks.filter(t => !t.task_list_id || !taskLists.some(tl => tl.id === t.task_list_id));
+        if (uncatTasks.length > 0) {
+            fullHtml += `
+                <tr class="tasklist-group-header-row" style="background:#181B20; border-bottom:1px solid #232730;">
+                    <td colspan="7" style="padding:8px 12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:10px; color:var(--text-muted);">▼</span>
+                            <span style="font-size:12px; color:var(--text-muted);">☰</span>
+                            <strong style="color:var(--text-primary); font-size:13px;">General Tasks (${uncatTasks.length})</strong>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            fullHtml += uncatTasks.map(renderTaskRow).join('');
+        }
+        tbody.innerHTML = fullHtml;
+    } else {
+        tbody.innerHTML = tasks.map(renderTaskRow).join('');
+    }
+
 
     tbody.querySelectorAll('.task-item-row').forEach(row => {
         const taskId = row.getAttribute('data-task-id');
@@ -2403,8 +2709,16 @@ async function loadProjectIssues() {
 }
 
 function setupAddIssueModal() {
-    document.getElementById('btnReportIssueModalTrigger')?.addEventListener('click', () => openModal('modalAddIssue'));
-    document.getElementById('btnHeaderAddIssueHome')?.addEventListener('click', () => openModal('modalAddIssue'));
+    function populateIssueProjects() {
+        const projSelect = document.getElementById('newIssueProject');
+        if (projSelect && allProjectsCache.length > 0) {
+            projSelect.innerHTML = allProjectsCache.map(p =>
+                `<option value="${p.id}" ${p.id === currentProjectId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+            ).join('');
+        }
+    }
+    document.getElementById('btnReportIssueModalTrigger')?.addEventListener('click', () => { populateIssueProjects(); openModal('modalAddIssue'); });
+    document.getElementById('btnHeaderAddIssueHome')?.addEventListener('click', () => { populateIssueProjects(); openModal('modalAddIssue'); });
 
     document.querySelectorAll('[data-close="modalAddIssue"]').forEach(b => {
         b.addEventListener('click', () => closeModal('modalAddIssue'));
@@ -2417,10 +2731,26 @@ function setupAddIssueModal() {
         const classification = document.getElementById('newIssueClassification').value;
         const description = document.getElementById('newIssueDescription').value.trim();
 
+        let projId = document.getElementById('newIssueProject')?.value || currentProjectId || (allProjectsCache[0]?.id);
+        if (!projId) {
+            try {
+                const autoProj = await apiFetch('/api/v1/projects', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: 'Workspace Main Project', keyPrefix: 'WE-01', isPublic: 1 })
+                });
+                if (autoProj.success && autoProj.data) {
+                    allProjectsCache.push(autoProj.data);
+                    projId = autoProj.data.id;
+                    currentProjectId = projId;
+                    sessionStorage.setItem('life_pms_project_id', currentProjectId);
+                }
+            } catch (err) {}
+        }
+
         const res = await apiFetch('/api/v1/issues', {
             method: 'POST',
             body: JSON.stringify({
-                projectId: currentProjectId,
+                projectId: projId,
                 title,
                 severity,
                 classification,
@@ -2964,22 +3294,36 @@ async function loadTeamDirectory() {
 
     const tbody = document.getElementById('teamMembersTbody');
     if (tbody) {
-        if (members.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">No team members found. Click "+ Invite Users" to add collaborators.</td></tr>';
+        const pdfAuthorized = [
+            'ravi.bhadoria', 'ananya.gupta', 'ineet', 'nikhil', 'ritika',
+            'shweta', 'ekta', 'abhishek', 'prince', 'ali', 'admin', 'manager'
+        ];
+        const displayMembers = members.filter(m => {
+            const uName = (m.username || '').toLowerCase();
+            const uMail = (m.email || '').toLowerCase();
+            return pdfAuthorized.some(a => uName === a || uMail.includes(a) || uMail.includes('webmaska'));
+        });
+
+        if (displayMembers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">No authorized team members found.</td></tr>';
         } else {
-            tbody.innerHTML = members.map(m => `
-                <tr>
-                    <td><strong>${escapeHtml(m.name || 'Team Member')}</strong></td>
-                    <td style="color:var(--text-secondary);">${escapeHtml(m.email || '')}</td>
-                    <td><span class="badge-subtle badge-success">${escapeHtml(m.role || 'Member')}</span></td>
-                    <td>${escapeHtml(m.department || 'Operations')}</td>
-                    <td style="font-family:var(--font-mono); font-weight:600;">$${m.cost_per_hour || 85}/hr</td>
-                    <td><span style="color:#22C55E; font-size:11px;">● Active</span></td>
-                    <td style="text-align:right;">
-                        <button class="btn btn-outline btn-sm btn-edit-role" data-user-id="${m.id}" data-user-name="${escapeHtml(m.name || '')}" data-user-email="${escapeHtml(m.email || '')}" data-user-role="${m.role || 'employee'}" data-user-cost="${m.cost_per_hour || 85}">Edit Role</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = displayMembers.map(m => {
+                const uName = m.username || (m.email ? m.email.split('@')[0] : 'user');
+                return `
+                    <tr>
+                        <td><strong>${escapeHtml(m.name || 'Team Member')}</strong></td>
+                        <td style="color:#38BDF8; font-weight:500;">@${escapeHtml(uName)}</td>
+                        <td style="color:var(--text-secondary);">${escapeHtml(m.email || '')}</td>
+                        <td><span class="badge-subtle badge-success">${escapeHtml(m.role || 'Employee')}</span></td>
+                        <td>${escapeHtml(m.department || 'Engineering')}</td>
+                        <td><span style="color:#22C55E; font-size:11px; font-weight:600;">● Active</span></td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <button type="button" class="btn btn-xs btn-primary" onclick="openInviteModalForMember('${m.id}')" style="font-size:11px; padding:3px 8px; margin-right:4px;">+ Invite to Project</button>
+                            <button class="btn btn-outline btn-sm btn-edit-role" data-user-id="${m.id}" data-user-name="${escapeHtml(m.name || '')}" data-user-email="${escapeHtml(m.email || '')}" data-user-role="${m.role || 'employee'}" data-user-cost="${m.cost_per_hour || 85}">Edit</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
     }
 
@@ -3788,6 +4132,26 @@ function setupAddTaskModal() {
         document.getElementById('btnSubbarAddTask')
     ];
     openBtns.forEach(b => b?.addEventListener('click', async () => {
+        // Populate Projects Dropdown in modalAddTask
+        const projSelect = document.getElementById('newTaskProject');
+        if (projSelect) {
+            projSelect.innerHTML = allProjectsCache.map(p =>
+                `<option value="${p.id}" ${p.id === currentProjectId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+            ).join('');
+
+            projSelect.onchange = async () => {
+                const selPid = projSelect.value;
+                const tlSelect = document.getElementById('newTaskListSelect');
+                if (selPid && tlSelect) {
+                    try {
+                        const tlRes = await apiFetch(`/api/v1/task-lists/project/${selPid}`);
+                        if (tlRes.success && tlRes.data && tlRes.data.length > 0) {
+                            tlSelect.innerHTML = tlRes.data.map(tl => `<option value="${tl.id}">${escapeHtml(tl.name)}</option>`).join('');
+                        }
+                    } catch (e) {}
+                }
+            };
+        }
         const select = document.getElementById('newTaskListSelect');
         if (select) {
             try {
@@ -3832,11 +4196,31 @@ function setupAddTaskModal() {
             return;
         }
 
-        const res = await apiFetch(`/api/v1/tasks/project/${currentProjectId}`, {
+        let projId = document.getElementById('newTaskProject')?.value || currentProjectId || (allProjectsCache[0]?.id);
+        if (!projId) {
+            try {
+                const autoProj = await apiFetch('/api/v1/projects', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: 'Workspace Main Project', keyPrefix: 'WE-01', isPublic: 1 })
+                });
+                if (autoProj.success && autoProj.data) {
+                    allProjectsCache.push(autoProj.data);
+                    projId = autoProj.data.id;
+                    currentProjectId = projId;
+                    sessionStorage.setItem('life_pms_project_id', currentProjectId);
+                }
+            } catch (err) {}
+        }
+
+        currentProjectId = projId;
+        sessionStorage.setItem('life_pms_project_id', currentProjectId);
+        updateNavbarProjectName();
+
+        const res = await apiFetch(`/api/v1/tasks/project/${projId}`, {
             method: 'POST',
             body: JSON.stringify({
                 name,
-                taskListId,
+                taskListId: taskListId || null,
                 note,
                 priority,
                 startDate,
@@ -3963,6 +4347,13 @@ function openCreateProjectModalWithTemplate(templateId = 'blank') {
     const ownerSelect = document.getElementById('createProjOwner');
     if (ownerSelect) {
         populateUserSelect(ownerSelect, currentUser?.id);
+        if (currentUser?.id && ownerSelect.querySelector('option[value="' + currentUser.id + '"]')) {
+            ownerSelect.value = currentUser.id;
+        }
+    }
+    const customOwnerInput = document.getElementById('createProjOwnerCustom');
+    if (customOwnerInput) {
+        customOwnerInput.value = currentUser?.name ? (currentUser.name + ' (@' + (currentUser.username || currentUser.email.split('@')[0]) + ')') : '';
     }
 
     // Set today's date as start date by default
@@ -4042,7 +4433,16 @@ function setupCreateProjectModal() {
 
         const name = nameInput?.value.trim();
         const keyPrefix = prefixInput?.value.trim() || 'WE-';
-        const ownerId = ownerSelect?.value || currentUser?.id;
+        const customOwner = document.getElementById('createProjOwnerCustom')?.value?.trim();
+        let ownerId = ownerSelect?.value || currentUser?.id;
+        if (customOwner) {
+            const matched = liveUsersCache.find(u =>
+                (u.username && customOwner.toLowerCase().includes(u.username.toLowerCase())) ||
+                (u.name && customOwner.toLowerCase().includes(u.name.toLowerCase())) ||
+                (u.email && customOwner.toLowerCase().includes(u.email.toLowerCase()))
+            );
+            if (matched) ownerId = matched.id || matched.user_id;
+        }
         const templateId = templateSelect?.value || 'blank';
         const startDate = startDateInput?.value || new Date().toISOString().split('T')[0];
         const endDate = endDateInput?.value || null;
@@ -4114,9 +4514,39 @@ function setupCreateProjectModal() {
     });
 }
 
+function openInviteModalForMember(userId) {
+    populateInviteProjectModal(userId);
+    openModal('modalInviteMember');
+}
+window.openInviteModalForMember = openInviteModalForMember;
+
+function populateInviteProjectModal(preselectedUserId = null) {
+    const projSelect = document.getElementById('inviteProjectSelect');
+    if (projSelect) {
+        if (allProjectsCache.length === 0) {
+            projSelect.innerHTML = '<option value="" disabled selected>No projects created yet. Please create a project first.</option>';
+        } else {
+            projSelect.innerHTML = allProjectsCache.map(p =>
+                `<option value="${p.id}" ${p.id === currentProjectId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+            ).join('');
+        }
+    }
+
+    const memberSelect = document.getElementById('inviteMemberSelect');
+    if (memberSelect && preselectedUserId) {
+        memberSelect.value = preselectedUserId;
+    }
+}
+
 function setupInviteMemberModal() {
-    document.getElementById('btnInviteUsers')?.addEventListener('click', () => openModal('modalInviteMember'));
-    document.getElementById('btnTeamInviteMemberModal')?.addEventListener('click', () => openModal('modalInviteMember'));
+    document.getElementById('btnInviteUsers')?.addEventListener('click', () => {
+        populateInviteProjectModal();
+        openModal('modalInviteMember');
+    });
+    document.getElementById('btnTeamInviteMemberModal')?.addEventListener('click', () => {
+        populateInviteProjectModal();
+        openModal('modalInviteMember');
+    });
 
     document.querySelectorAll('[data-close="modalInviteMember"]').forEach(b => {
         b.addEventListener('click', () => closeModal('modalInviteMember'));
@@ -4124,153 +4554,67 @@ function setupInviteMemberModal() {
 
     document.getElementById('formModalInviteMember')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nameInput = document.getElementById('inviteName');
-        const emailInput = document.getElementById('inviteEmail');
-        const roleInput = document.getElementById('inviteRole');
+        const projSelect = document.getElementById('inviteProjectSelect');
+        const memberSelect = document.getElementById('inviteMemberSelect');
+        const roleSelect = document.getElementById('inviteProjectRole');
+        const messageInput = document.getElementById('inviteProjectMessage');
         const submitBtn = document.getElementById('btnSubmitInviteMember');
 
-        const name = nameInput ? nameInput.value.trim() : '';
-        const email = emailInput ? emailInput.value.trim() : '';
-        const role = roleInput ? roleInput.value : 'employee';
+        const projectId = projSelect?.value;
+        const receiverId = memberSelect?.value;
+        const role = roleSelect?.value || 'employee';
+        const message = messageInput?.value.trim() || 'Invited you to collaborate on this project in Life PMS.';
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email || !emailRegex.test(email)) {
-            alert('Please enter a valid recipient email address.');
+        if (!projectId) {
+            alert('Please select a project to invite the member to.');
             return;
         }
 
+        if (!receiverId) {
+            alert('Please select an authorized team member from the list.');
+            return;
+        }
+
+        const selectedOption = memberSelect.options[memberSelect.selectedIndex];
+        const memberName = selectedOption ? selectedOption.text.split('(')[0].trim() : 'Team Member';
+        const projName = projSelect.options[projSelect.selectedIndex]?.text || 'Project';
+
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending Invitation...';
+            submitBtn.textContent = 'Sending In-App Invite...';
         }
 
         try {
-            // 1. Dual-write directly to Firebase Firestore collection "submitted_emails" and "invited_members"
-            let fbNotice = '';
-            if (window.firebaseAuthClient?.saveSubmittedEmailToFirebase) {
-                try {
-                    const fbRes = await window.firebaseAuthClient.saveSubmittedEmailToFirebase({
-                        email,
-                        name,
-                        role,
-                        source: 'invite_team_modal',
-                        portalId: currentPortalId,
-                        metadata: { invitedBy: currentUserEmail }
-                    });
-                    if (fbRes?.syncedToFirestore || fbRes?.success) {
-                        fbNotice = '\n✓ Record successfully saved to Firebase Firestore collections "invited_members" & "submitted_emails" (viewable in Firebase Console).';
-                    }
-                } catch (fbErr) {
-                    console.warn('[Firebase] Dual-write notice:', fbErr.message);
-                }
-            }
-
-            if (window.firebaseAuthClient?.saveInvitedMemberToFirestore) {
-                try {
-                    await window.firebaseAuthClient.saveInvitedMemberToFirestore({
-                        email,
-                        name,
-                        role,
-                        portalId: currentPortalId
-                    });
-                } catch (imErr) {
-                    console.warn('[Firebase] Invited member sync notice:', imErr.message);
-                }
-            }
-
-            // 2. Dispatch real email and persist to database
-            const res = await apiFetch('/api/v1/portals/invite', {
+            const res = await apiFetch('/api/v1/requests', {
                 method: 'POST',
                 body: JSON.stringify({
-                    email,
-                    name,
-                    role,
-                    baseUrl: window.location.origin
+                    receiver_id: receiverId,
+                    request_type: 'PROJECT_INVITE',
+                    target_entity_id: projectId,
+                    payload: {
+                        projectId,
+                        projectName: projName,
+                        role,
+                        message,
+                        inviterName: currentUser?.name || 'Administrator',
+                        inviterEmail: currentUser?.email
+                    }
                 })
             });
 
-            if (res.success && !res.offline) {
+            if (res.success) {
                 closeModal('modalInviteMember');
-                if (nameInput) nameInput.value = '';
-                if (emailInput) emailInput.value = '';
-
-                const delivery = res.data?.emailDelivery || {};
-                const inviteLink = res.data?.inviteLink || `${window.location.origin}/login?inviteEmail=${encodeURIComponent(email)}&inviteName=${encodeURIComponent(name)}&role=${encodeURIComponent(role)}`;
-                const isDailyLimit = delivery.isDailyLimitExceeded || /550|daily user sending limit|quota|limit exceeded/i.test(delivery.error || '') || /550|daily user sending limit|quota|limit exceeded/i.test(res.data?.error || '');
-
-                if (delivery.deliveredToInbox) {
-                    alert(`✓ Invitation email sent!\n\nEmail delivered to ${email} (${role}). The invite link has also been generated and activated.${fbNotice}`);
-                } else if (isDailyLimit) {
-                    let copied = false;
-                    try {
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            await navigator.clipboard.writeText(inviteLink);
-                            copied = true;
-                        }
-                    } catch (clipErr) {}
-
-                    alert(
-                        `✓ Member successfully invited to workspace!${fbNotice}\n\n` +
-                        `⚠️ Google Gmail Notice:\n` +
-                        `Google's daily sending limit has been reached on the backend sender account (Gmail Error 550-5.4.5). Google automatically resets this limit within 24 hours.\n\n` +
-                        `📋 Direct Invitation Link ${copied ? '(Copied to Clipboard!)' : ''}:\n` +
-                        `${inviteLink}\n\n` +
-                        `You can paste and send this invitation link directly to ${name || email} so they can access the workspace immediately!`
-                    );
-                } else if (delivery.sandboxOnly) {
-                    alert(`✓ Member invited and recorded in workspace database!${fbNotice}\n\n⚠️ Email Delivery Notice: Real SMTP credentials are not configured in .env. The invitation email was captured by the developer test sandbox:\n${res.data?.previewUrl || delivery.previewUrl}\n\nDirect Invite Link:\n${inviteLink}`);
-                } else if (delivery.success === false) {
-                    let copied = false;
-                    try {
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            await navigator.clipboard.writeText(inviteLink);
-                            copied = true;
-                        }
-                    } catch (clipErr) {}
-                    alert(`✓ Member invited and recorded in workspace database!${fbNotice}\n\n⚠️ Email Delivery Notice: The email provider rejected delivery (${delivery.error || 'SMTP delivery rejected'}).\n\n📋 Direct Invitation Link ${copied ? '(Copied to Clipboard!)' : ''}:\n${inviteLink}\n\nYou can share this link directly with ${email}.`);
-                } else {
-                    alert(`✓ Member invited and recorded in workspace database for ${email} (${role})!${fbNotice}`);
-                }
-
-                if (document.getElementById('view-team-users')?.classList.contains('active')) {
-                    await loadTeamDirectory();
-                }
+                if (messageInput) messageInput.value = '';
+                alert(`✓ In-App Project Invitation successfully sent to ${memberName}!\n\nThey will receive it directly within their application account to Accept or Decline.`);
             } else {
-                const isDailyLimit = /550|daily user sending limit|quota|limit exceeded/i.test(res.error || '');
-                if (isDailyLimit) {
-                    const fallbackLink = `${window.location.origin}/login?inviteEmail=${encodeURIComponent(email)}&inviteName=${encodeURIComponent(name)}&role=${encodeURIComponent(role)}`;
-                    let copied = false;
-                    try {
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            await navigator.clipboard.writeText(fallbackLink);
-                            copied = true;
-                        }
-                    } catch (e) {}
-
-                    alert(
-                        `✓ Member invitation created!${fbNotice}\n\n` +
-                        `⚠️ Google Gmail Notice:\n` +
-                        `Google SMTP daily sending limit was reached (Gmail 550-5.4.5). Google resets this limit every 24 hours.\n\n` +
-                        `📋 Direct Access Link ${copied ? '(Copied to Clipboard!)' : ''}:\n` +
-                        `${fallbackLink}\n\n` +
-                        `You can paste and send this link directly to ${name || email}!`
-                    );
-                    closeModal('modalInviteMember');
-                    if (nameInput) nameInput.value = '';
-                    if (emailInput) emailInput.value = '';
-                    if (document.getElementById('view-team-users')?.classList.contains('active')) {
-                        await loadTeamDirectory();
-                    }
-                } else {
-                    alert(`Failed to send invitation: ${res.error || 'Server error occurred during email delivery.'}`);
-                }
+                alert(res.error || 'Failed to send invitation.');
             }
         } catch (err) {
-            alert(`Email delivery failed: ${err.message}`);
+            alert('Invitation error: ' + err.message);
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Send Invitation';
+                submitBtn.textContent = 'Send In-App Invitation';
             }
         }
     });
@@ -4854,3 +5198,549 @@ function setupHeaderButtons() {
         window.open(`/api/v1/integrations/export/${currentProjectId}?format=csv`, '_blank');
     });
 }
+
+/* ==========================================================================
+   In-App Requests System (Instagram-style Pending/Accepted/Rejected Queue)
+   ========================================================================== */
+let incomingRequestsCache = [];
+let workspaceUsersDirectory = [];
+
+async function fetchIncomingRequests() {
+    try {
+        const res = await apiFetch('/api/v1/requests/incoming');
+        if (res.success && Array.isArray(res.data)) {
+            incomingRequestsCache = res.data;
+            const count = incomingRequestsCache.length;
+            const badge = document.getElementById('request-badge');
+            const countTag = document.getElementById('requestsDropdownCount');
+
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+            if (countTag) {
+                countTag.textContent = `${count} Pending`;
+            }
+
+            renderRequestsDropdown();
+        }
+    } catch (err) {
+        console.warn('[Requests] Failed to fetch incoming requests:', err.message);
+    }
+}
+
+function renderRequestsDropdown() {
+    const list = document.getElementById('requestsDropdownList');
+    if (!list) return;
+
+    if (incomingRequestsCache.length === 0) {
+        list.innerHTML = '<div class="requests-empty-state">No pending requests.</div>';
+        return;
+    }
+
+    list.innerHTML = incomingRequestsCache.map(r => {
+        const senderName = r.sender_name || 'Teammate';
+        const senderInitial = senderName.charAt(0).toUpperCase();
+        const typeBadge = formatRequestType(r.request_type);
+        const payload = r.payload || {};
+        const msg = payload.message || getRequestTypeDescription(r.request_type, payload);
+
+        return `
+            <div class="request-card" id="req-card-${r.id}">
+                <div class="request-card-header">
+                    <div class="request-sender-info">
+                        <div class="request-sender-avatar">${senderInitial}</div>
+                        <div style="min-width:0;">
+                            <div class="request-sender-name">${escapeHtml(senderName)}</div>
+                            <div style="font-size:10px; color:var(--text-muted);">@${escapeHtml(r.sender_username || r.sender_email?.split('@')[0] || '')}</div>
+                        </div>
+                    </div>
+                    <span class="request-type-badge ${typeBadge.cls}">${typeBadge.label}</span>
+                </div>
+                <div class="request-card-body">${escapeHtml(msg)}</div>
+                <div class="request-card-actions">
+                    <button type="button" class="btn-request-accept" onclick="handleRespondRequest('${r.id}', 'ACCEPT')">Accept</button>
+                    <button type="button" class="btn-request-decline" onclick="handleRespondRequest('${r.id}', 'REJECT')">Decline</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function formatRequestType(type) {
+    switch (type) {
+        case 'USER_CONNECTION': return { label: 'Connection', cls: 'badge-connection' };
+        case 'PROJECT_INVITE': return { label: 'Project Invite', cls: 'badge-project' };
+        case 'TASK_HANDOFF': return { label: 'Task Handoff', cls: 'badge-task' };
+        case 'TEAM_INVITE': return { label: 'Team Invite', cls: 'badge-project' };
+        case 'APPROVAL_REQUEST': return { label: 'Approval', cls: 'badge-task' };
+        default: return { label: 'Request', cls: '' };
+    }
+}
+
+function getRequestTypeDescription(type, payload) {
+    switch (type) {
+        case 'USER_CONNECTION': return 'Wants to connect with you in the workspace.';
+        case 'PROJECT_INVITE': return `Invited you to collaborate as ${payload.role || 'Member'}.`;
+        case 'TASK_HANDOFF': return 'Sent you a WBS task handoff assignment.';
+        case 'TEAM_INVITE': return 'Invited you to join their team roster.';
+        case 'APPROVAL_REQUEST': return 'Requested your managerial review and approval.';
+        default: return 'Sent you an in-app request.';
+    }
+}
+
+async function handleRespondRequest(requestId, action) {
+    try {
+        const res = await apiFetch(`/api/v1/requests/${requestId}/respond`, {
+            method: 'PATCH',
+            body: JSON.stringify({ action })
+        });
+        if (res.success) {
+            // Remove from cache and update badge
+            incomingRequestsCache = incomingRequestsCache.filter(r => r.id !== requestId);
+            const count = incomingRequestsCache.length;
+            const badge = document.getElementById('request-badge');
+            const countTag = document.getElementById('requestsDropdownCount');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+            if (countTag) {
+                countTag.textContent = `${count} Pending`;
+            }
+            renderRequestsDropdown();
+
+            // If accepted, refresh active project or task views
+            if (action === 'ACCEPT') {
+                if (typeof loadProjectsList === 'function') await loadProjectsList();
+                if (typeof loadCurrentTaskView === 'function') await loadCurrentTaskView();
+            }
+        }
+    } catch (err) {
+        alert('Could not process request: ' + err.message);
+    }
+}
+window.handleRespondRequest = handleRespondRequest;
+
+async function sendInAppRequest(receiverIdentifier, type, targetId, payload) {
+    try {
+        const res = await apiFetch('/api/v1/requests', {
+            method: 'POST',
+            body: JSON.stringify({
+                receiver_id: receiverIdentifier.includes('-') ? receiverIdentifier : undefined,
+                username: !receiverIdentifier.includes('@') && !receiverIdentifier.includes('-') ? receiverIdentifier : undefined,
+                email: receiverIdentifier.includes('@') ? receiverIdentifier : undefined,
+                request_type: type,
+                target_entity_id: targetId,
+                payload: payload || {}
+            })
+        });
+        if (res.success) {
+            alert('✓ In-app request sent successfully!');
+            return res.data;
+        }
+    } catch (err) {
+        alert('Failed to send request: ' + err.message);
+        throw err;
+    }
+}
+window.sendInAppRequest = sendInAppRequest;
+
+function setupInAppRequests() {
+    const btn = document.getElementById('btnToggleRequests');
+    const dropdown = document.getElementById('requestsDropdown');
+    const wrapper = document.getElementById('inAppRequestsWrapper');
+
+    btn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!dropdown) return;
+        dropdown.style.display = dropdown.style.display === 'flex' || dropdown.style.display === 'block' ? 'none' : 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (dropdown && wrapper && !wrapper.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // Open User Directory
+    document.getElementById('btnOpenUserDirectory')?.addEventListener('click', () => {
+        if (dropdown) dropdown.style.display = 'none';
+        openUserDirectoryModal();
+    });
+
+    document.getElementById('btnCloseUserDirectory')?.addEventListener('click', () => {
+        document.getElementById('modalUserDirectory').style.display = 'none';
+    });
+
+    document.getElementById('btnCloseUserDirectoryFooter')?.addEventListener('click', () => {
+        document.getElementById('modalUserDirectory').style.display = 'none';
+    });
+
+    document.getElementById('userDirSearchInput')?.addEventListener('input', (e) => {
+        renderUserDirectoryList(e.target.value.toLowerCase().trim());
+    });
+}
+
+async function openUserDirectoryModal() {
+    const modal = document.getElementById('modalUserDirectory');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    const list = document.getElementById('userDirectoryList');
+    if (list) list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Loading directory...</div>';
+
+    try {
+        const res = await apiFetch('/api/v1/users/directory');
+        if (res.success && Array.isArray(res.data)) {
+            workspaceUsersDirectory = res.data;
+            renderUserDirectoryList('');
+        }
+    } catch (err) {
+        if (list) list.innerHTML = `<div style="text-align:center; padding:20px; color:#EF4444; font-size:12px;">Failed to load directory: ${escapeHtml(err.message)}</div>`;
+    }
+}
+
+function renderUserDirectoryList(filterTerm = '') {
+    const list = document.getElementById('userDirectoryList');
+    if (!list) return;
+
+    let filtered = workspaceUsersDirectory;
+    if (filterTerm) {
+        filtered = filtered.filter(u =>
+            (u.name && u.name.toLowerCase().includes(filterTerm)) ||
+            (u.username && u.username.toLowerCase().includes(filterTerm)) ||
+            (u.email && u.email.toLowerCase().includes(filterTerm)) ||
+            (u.department && u.department.toLowerCase().includes(filterTerm))
+        );
+    }
+
+    if (filtered.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">No teammates found matching search.</div>';
+        return;
+    }
+
+    list.innerHTML = filtered.map(u => {
+        const initials = (u.name || 'U').charAt(0).toUpperCase();
+        let actionBtn = '';
+        if (u.connection_status === 'SELF') {
+            actionBtn = '<span style="font-size:11px; color:var(--text-muted);">(You)</span>';
+        } else if (u.connection_status === 'CONNECTED') {
+            actionBtn = '<span style="font-size:11px; color:#059669; font-weight:600;">✓ Connected</span>';
+        } else if (u.connection_status === 'PENDING_SENT') {
+            actionBtn = '<span style="font-size:11px; color:#D97706; font-weight:500;">⏳ Request Sent</span>';
+        } else if (u.connection_status === 'PENDING_RECEIVED') {
+            actionBtn = `<button type="button" class="btn btn-xs btn-primary" onclick="openRequestsDropdownFromDir()">Respond</button>`;
+        } else {
+            actionBtn = `<button type="button" class="btn btn-xs btn-primary" onclick="sendConnectionRequest('${u.id}', '${escapeHtml(u.name)}')">+ Connect</button>`;
+        }
+
+        return `
+            <div class="user-dir-item">
+                <div class="user-dir-info">
+                    <div class="request-sender-avatar" style="width:32px; height:32px; font-size:12px;">${initials}</div>
+                    <div class="user-dir-meta">
+                        <div class="user-dir-name">${escapeHtml(u.name)} <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(@${escapeHtml(u.username)})</span></div>
+                        <div class="user-dir-role">${escapeHtml(u.role)} &bull; ${escapeHtml(u.department || 'Team')}</div>
+                    </div>
+                </div>
+                <div>${actionBtn}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function sendConnectionRequest(targetUserId, targetName) {
+    try {
+        await sendInAppRequest(targetUserId, 'USER_CONNECTION', null, {
+            message: `Wants to connect with you in Life PMS workspace.`
+        });
+        await openUserDirectoryModal();
+    } catch (e) {
+        // error already alerted
+    }
+}
+window.sendConnectionRequest = sendConnectionRequest;
+
+function openRequestsDropdownFromDir() {
+    document.getElementById('modalUserDirectory').style.display = 'none';
+    const dropdown = document.getElementById('requestsDropdown');
+    if (dropdown) dropdown.style.display = 'block';
+}
+window.openRequestsDropdownFromDir = openRequestsDropdownFromDir;
+
+
+/* ==========================================================================
+   My Approvals View Implementation (Project Collaboration & Access Approvals)
+   ========================================================================== */
+let allApprovalsCache = [];
+let currentApprovalsFilter = 'all';
+
+function setupApprovalsView() {
+    // Refresh button
+    document.getElementById('btnRefreshApprovals')?.addEventListener('click', async () => {
+        await loadApprovalsView();
+    });
+
+    // Quick Invite button opens invite modal
+    document.getElementById('btnQuickInviteApprovals')?.addEventListener('click', () => {
+        if (typeof populateInviteProjectModal === 'function') populateInviteProjectModal();
+        openModal('modalInviteMember');
+    });
+
+    // Filter Chips
+    const filterGroup = document.getElementById('approvalsFilterGroup');
+    if (filterGroup) {
+        filterGroup.querySelectorAll('.view-chip-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterGroup.querySelectorAll('.view-chip-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentApprovalsFilter = btn.getAttribute('data-approval-filter') || 'all';
+                renderApprovalsTable();
+            });
+        });
+    }
+}
+
+async function loadApprovalsView() {
+    const tbody = document.getElementById('approvalsTableTbody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">Loading collaboration approvals...</td></tr>';
+    }
+
+    try {
+        const res = await apiFetch('/api/v1/requests/approvals');
+        if (res.success && Array.isArray(res.data)) {
+            allApprovalsCache = res.data;
+        } else {
+            allApprovalsCache = [];
+        }
+    } catch (err) {
+        console.warn('[Approvals] Error fetching approvals:', err.message);
+        // Fallback to local cache if present
+        allApprovalsCache = JSON.parse(localStorage.getItem('life_pms_approvals') || '[]');
+    }
+
+    updateApprovalsCounters();
+    renderApprovalsTable();
+}
+
+function updateApprovalsCounters() {
+    const total = allApprovalsCache.length;
+    const accepted = allApprovalsCache.filter(r => r.status === 'ACCEPTED' || r.status === 'APPROVED').length;
+    const pending = allApprovalsCache.filter(r => r.status === 'PENDING').length;
+    const rejected = allApprovalsCache.filter(r => r.status === 'REJECTED' || r.status === 'CANCELLED').length;
+
+    const elTotal = document.getElementById('approvalsTotalCount');
+    const elAccepted = document.getElementById('approvalsAcceptedCount');
+    const elPending = document.getElementById('approvalsPendingCount');
+    const elRejected = document.getElementById('approvalsRejectedCount');
+    const elSidebarBadge = document.getElementById('sidebarApprovalsCount');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elAccepted) elAccepted.textContent = accepted;
+    if (elPending) elPending.textContent = pending;
+    if (elRejected) elRejected.textContent = rejected;
+
+    if (elSidebarBadge) {
+        if (pending > 0) {
+            elSidebarBadge.textContent = pending;
+            elSidebarBadge.style.display = 'inline-block';
+        } else {
+            elSidebarBadge.style.display = 'none';
+        }
+    }
+}
+
+function renderApprovalsTable() {
+    const tbody = document.getElementById('approvalsTableTbody');
+    if (!tbody) return;
+
+    let items = allApprovalsCache;
+    if (currentApprovalsFilter === 'accepted') {
+        items = allApprovalsCache.filter(r => r.status === 'ACCEPTED' || r.status === 'APPROVED');
+    } else if (currentApprovalsFilter === 'pending') {
+        items = allApprovalsCache.filter(r => r.status === 'PENDING');
+    } else if (currentApprovalsFilter === 'rejected') {
+        items = allApprovalsCache.filter(r => r.status === 'REJECTED' || r.status === 'CANCELLED');
+    }
+
+    if (items.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center; padding:36px; color:var(--text-secondary);">
+                    <div style="font-size:24px; margin-bottom:8px;">📁</div>
+                    <div>No collaboration approvals found in this view.</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">When you invite team members or collaborate on projects, requests and their approval statuses will appear here.</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    const currentUserId = currentUser ? currentUser.id : null;
+
+    tbody.innerHTML = items.map(item => {
+        const sender = item.sender || {};
+        const receiver = item.receiver || {};
+        const project = item.project || {};
+        const isReceiver = currentUserId && (receiver.id === currentUserId || receiver.email === currentUser?.email);
+        const isSender = currentUserId && (sender.id === currentUserId || sender.email === currentUser?.email);
+
+        // Status badge
+        let statusBadge = '';
+        if (item.status === 'ACCEPTED' || item.status === 'APPROVED') {
+            statusBadge = `<span style="background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); border-radius:4px; padding:3px 8px; font-weight:600; font-size:11px; display:inline-flex; align-items:center; gap:4px;"><span>✓</span> Approved / Accepted</span>`;
+        } else if (item.status === 'PENDING') {
+            statusBadge = `<span style="background:rgba(245,158,11,0.15); color:#F59E0B; border:1px solid rgba(245,158,11,0.3); border-radius:4px; padding:3px 8px; font-weight:600; font-size:11px; display:inline-flex; align-items:center; gap:4px;"><span>⏳</span> Pending Approval</span>`;
+        } else if (item.status === 'REJECTED') {
+            statusBadge = `<span style="background:rgba(239,68,68,0.15); color:#EF4444; border:1px solid rgba(239,68,68,0.3); border-radius:4px; padding:3px 8px; font-weight:600; font-size:11px; display:inline-flex; align-items:center; gap:4px;"><span>✕</span> Rejected</span>`;
+        } else {
+            statusBadge = `<span class="badge-subtle">${escapeHtml(item.status)}</span>`;
+        }
+
+        // Action buttons
+        let actionButtons = '';
+        if (item.status === 'PENDING' && isReceiver) {
+            actionButtons = `
+                <div style="display:flex; gap:6px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-xs btn-primary" onclick="handleApprovalsRespond('${item.id}', 'ACCEPT')">Accept</button>
+                    <button type="button" class="btn btn-xs btn-outline" onclick="handleApprovalsRespond('${item.id}', 'REJECT')">Decline</button>
+                </div>
+            `;
+        } else if (item.status === 'PENDING' && isSender) {
+            actionButtons = `
+                <div style="display:flex; justify-content:flex-end;">
+                    <button type="button" class="btn btn-xs btn-outline" style="color:#EF4444;" onclick="handleCancelApprovalRequest('${item.id}')">Cancel</button>
+                </div>
+            `;
+        } else if (item.status === 'ACCEPTED' || item.status === 'APPROVED') {
+            const targetProjId = project.id || item.target_entity_id;
+            actionButtons = `
+                <div style="display:flex; justify-content:flex-end;">
+                    <button type="button" class="btn btn-xs btn-outline" onclick="handleOpenApprovedProject('${targetProjId}')">View Project &rarr;</button>
+                </div>
+            `;
+        } else {
+            actionButtons = `<span style="color:var(--text-muted); font-size:11px;">Completed</span>`;
+        }
+
+        // Formatted Date
+        const dateStr = item.responded_at || item.created_at;
+        const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+        // Project display
+        const projName = project.name || 'Project Workspace';
+        const projPrefix = project.key_prefix ? `<span style="font-size:10px; color:var(--text-muted); font-family:monospace;">${escapeHtml(project.key_prefix)}</span> ` : '';
+
+        return `
+            <tr id="approval-row-${item.id}">
+                <td>
+                    <span class="badge-project" style="font-size:11px; padding:2px 8px;">Project Collaboration</span>
+                </td>
+                <td>
+                    <div style="font-weight:600; color:var(--text-primary);">${projPrefix}${escapeHtml(projName)}</div>
+                </td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="user-avatar-sm" style="width:24px; height:24px; font-size:10px; background:#1E293B; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#38BDF8; font-weight:bold;">
+                            ${(sender.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:500;">${escapeHtml(sender.name || 'Teammate')} ${isSender ? '<span style="color:var(--text-muted); font-size:10px;">(You)</span>' : ''}</div>
+                            <div style="font-size:10px; color:var(--text-muted);">@${escapeHtml(sender.username || sender.email?.split('@')[0] || '')}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="user-avatar-sm" style="width:24px; height:24px; font-size:10px; background:#1E293B; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#10B981; font-weight:bold;">
+                            ${(receiver.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:500;">${escapeHtml(receiver.name || 'Collaborator')} ${isReceiver ? '<span style="color:var(--text-muted); font-size:10px;">(You)</span>' : ''}</div>
+                            <div style="font-size:10px; color:var(--text-muted);">@${escapeHtml(receiver.username || receiver.email?.split('@')[0] || '')}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge-subtle" style="font-size:10px; text-transform:capitalize;">${escapeHtml(item.role || 'Employee')}</span>
+                </td>
+                <td style="text-align:center;">
+                    ${statusBadge}
+                </td>
+                <td style="font-size:12px; color:var(--text-secondary);">
+                    ${formattedDate}
+                </td>
+                <td style="text-align:right;">
+                    ${actionButtons}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function handleApprovalsRespond(requestId, action) {
+    try {
+        const res = await apiFetch(`/api/v1/requests/${requestId}/respond`, {
+            method: 'PATCH',
+            body: JSON.stringify({ action })
+        });
+
+        if (res.success) {
+            // Update local cache
+            const item = allApprovalsCache.find(r => r.id === requestId);
+            if (item) {
+                item.status = action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED';
+                item.responded_at = new Date().toISOString();
+                item.is_approved = action === 'ACCEPT';
+                item.approval_status = action === 'ACCEPT' ? 'Approved / Accepted' : 'Rejected';
+            }
+
+            // Sync project list so the newly accepted project is loaded into the user workspace
+            if (action === 'ACCEPT') {
+                if (typeof loadProjectsList === 'function') await loadProjectsList();
+            }
+
+            // Also refresh incoming requests badge
+            if (typeof fetchIncomingRequests === 'function') await fetchIncomingRequests();
+
+            updateApprovalsCounters();
+            renderApprovalsTable();
+
+            alert(`✓ Request has been ${action === 'ACCEPT' ? 'Approved & Accepted' : 'Declined'}.`);
+        } else {
+            alert(res.error || 'Failed to process request.');
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+window.handleApprovalsRespond = handleApprovalsRespond;
+
+async function handleCancelApprovalRequest(requestId) {
+    if (!confirm('Are you sure you want to cancel this pending invitation?')) return;
+    try {
+        const res = await apiFetch(`/api/v1/requests/${requestId}`, {
+            method: 'DELETE'
+        });
+        if (res.success) {
+            allApprovalsCache = allApprovalsCache.filter(r => r.id !== requestId);
+            updateApprovalsCounters();
+            renderApprovalsTable();
+            alert('✓ Pending request cancelled.');
+        } else {
+            alert(res.error || 'Failed to cancel request.');
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+window.handleCancelApprovalRequest = handleCancelApprovalRequest;
+
+function handleOpenApprovedProject(projectId) {
+    if (!projectId) return;
+    currentProjectId = projectId;
+    sessionStorage.setItem('life_pms_project_id', projectId);
+    switchActiveView('tasks');
+}
+window.handleOpenApprovedProject = handleOpenApprovedProject;

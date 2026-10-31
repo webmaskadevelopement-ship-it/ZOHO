@@ -32,13 +32,17 @@ function getDatabase(customPath) {
 
     // Initialize schema
     const schemaPath = path.resolve(__dirname, 'schema.sql');
-    if (fs.existsSync(schemaPath)) {
-        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-        db.exec(schemaSql);
-    }
     try {
-        require('./migrateSchema')();
+        require('./migrateSchema')(db);
     } catch (e) {}
+    if (fs.existsSync(schemaPath)) {
+        try {
+            const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+            db.exec(schemaSql);
+        } catch (schemaErr) {
+            console.warn('[Database] Initial schema exec notice:', schemaErr.message);
+        }
+    }
     try {
         require('./seedInvites').initInvitedMembers();
     } catch (e) {}

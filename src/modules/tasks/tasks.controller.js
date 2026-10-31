@@ -30,11 +30,11 @@ router.get('/project/:projectId', (req, res, next) => {
 });
 
 // Create task under a project
-router.post('/project/:projectId', requireRole(['admin', 'manager', 'employee']), (req, res, next) => {
+router.post('/project/:projectId', requireRole(['admin', 'manager', 'employee', 'member']), (req, res, next) => {
     try {
         const payload = { ...req.body, projectId: req.params.projectId };
-        if (!payload.taskListId || !payload.name) {
-            return res.status(400).json({ success: false, error: 'taskListId and name are required.' });
+        if (!payload.name) {
+            return res.status(400).json({ success: false, error: 'Task name is required.' });
         }
         const task = TasksService.createTask(req.portalId, payload);
         res.status(201).json({ success: true, data: task });

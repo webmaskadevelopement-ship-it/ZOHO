@@ -18,7 +18,7 @@ router.get('/groups', (req, res, next) => {
     }
 });
 
-router.post('/groups', requireRole(['admin', 'manager']), (req, res, next) => {
+router.post('/groups', requireRole(['admin', 'manager', 'employee', 'member', 'client']), (req, res, next) => {
     try {
         const { name, description, color } = req.body;
         if (!name) return res.status(400).json({ success: false, error: 'Group name is required.' });
@@ -42,7 +42,7 @@ router.get('/', (req, res, next) => {
     }
 });
 
-router.post('/', requireRole(['admin', 'manager']), (req, res, next) => {
+router.post('/', requireRole(['admin', 'manager', 'employee', 'member', 'client']), (req, res, next) => {
     try {
         const { name, keyPrefix, ownerId, projectGroupId, description, startDate, endDate, isPublic, isStrictSchedule, isRollupProject, budgetConfig } = req.body;
         if (!name) return res.status(400).json({ success: false, error: 'Project name is required.' });
@@ -76,7 +76,7 @@ router.get('/:id', (req, res, next) => {
     }
 });
 
-router.put('/:id', requireRole(['admin', 'manager']), (req, res, next) => {
+router.put('/:id', requireRole(['admin', 'manager', 'employee', 'member', 'client']), (req, res, next) => {
     try {
         const project = ProjectsService.updateProject(req.portalId, req.params.id, req.body);
         res.json({ success: true, data: project });

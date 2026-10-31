@@ -151,7 +151,7 @@ class PortalsService {
         return { success: true, portalId, userId: memberUserId, newRole };
     }
 
-    static async inviteMember(portalId, { email, name, role = 'employee', inviterId, inviterName, baseUrl = 'http://localhost:5000' }) {
+    static async inviteMember(portalId, { email, name, role = 'employee', inviterId, inviterName, baseUrl = (process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.APP_BASE_URL || 'http://localhost:5000') }) {
         if (!email || !name) {
             throw new Error('Email and Name are required.');
         }
