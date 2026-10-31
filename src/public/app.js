@@ -434,12 +434,16 @@ function handleStaticApi(endpoint, options = {}) {
 
         // Create Task (POST /api/v1/tasks/project/...)
         if (method === 'POST') {
+            const parts = endpoint.split('/');
+            const targetProjId = parts[parts.indexOf('tasks') + 2] || currentProjectId;
             const count = tasks.length + 1;
             const newTask = {
-                id: 'task-' + Date.now().toString(36),
-                projectId: currentProjectId,
-                taskListId: body.taskListId || 'list-phase-system',
-                prefix_key: 'AE1-T' + (40 + count),
+                id: 'task-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
+                projectId: targetProjId,
+                project_id: targetProjId,
+                taskListId: body.taskListId || 'list-general-internal',
+                task_list_id: body.taskListId || 'list-general-internal',
+                prefix_key: 'T-' + (40 + count),
                 name: body.name || 'New Task',
                 description: body.note || '',
                 priority: body.priority || 'medium',
@@ -478,7 +482,9 @@ function handleStaticApi(endpoint, options = {}) {
         }
 
         // Filter by project
-        const projectTasks = tasks.filter(t => !t.projectId || t.projectId === currentProjectId);
+        const parts = endpoint.split('/');
+        const filterProjId = parts[parts.indexOf('tasks') + 2] || currentProjectId;
+        const projectTasks = tasks.filter(t => !filterProjId || !t.projectId || !t.project_id || t.projectId === filterProjId || t.project_id === filterProjId);
         return { success: true, data: projectTasks };
     }
 
@@ -1101,33 +1107,55 @@ async function loadInitialData() {
 async function loadProjectsList() {
     try {
         const res = await apiFetch('/api/v1/projects');
-        if (res.success && res.data) {
-            allProjectsCache = res.data;
+        let projs = (res && res.success && Array.isArray(res.data)) ? [...res.data] : [];
+        const localProjs = JSON.parse(localStorage.getItem('life_pms_projects') || '[]');
 
-            // If empty locally, attempt fetch from Firestore collection "projects"
-            if ((!allProjectsCache || allProjectsCache.length === 0) && window.firebaseAuthClient?.fetchProjectsFromFirestore) {
-                try {
-                    const fbProjs = await window.firebaseAuthClient.fetchProjectsFromFirestore();
-                    if (fbProjs && fbProjs.length > 0) {
-                        allProjectsCache = fbProjs;
-                        localStorage.setItem('life_pms_projects', JSON.stringify(allProjectsCache));
-                    }
-                } catch (e) {}
-            } else if (allProjectsCache.length > 0 && window.firebaseAuthClient?.saveProjectToFirestore) {
-                // Ensure projects are synced to Firestore
-                allProjectsCache.forEach(p => window.firebaseAuthClient.saveProjectToFirestore(p).catch(() => {}));
-            }
+        // Merge backend projects with locally stored projects (deduplicate by id)
+        const projectMap = new Map();
+        localProjs.forEach(p => { if (p && p.id) projectMap.set(p.id, p); });
+        projs.forEach(p => { if (p && p.id) projectMap.set(p.id, { ...projectMap.get(p.id), ...p }); });
 
-            const savedProjectId = sessionStorage.getItem('life_pms_project_id');
-            if (savedProjectId && allProjectsCache.some(p => p.id === savedProjectId)) {
-                currentProjectId = savedProjectId;
-            } else if (allProjectsCache.length > 0 && !allProjectsCache.some(p => p.id === currentProjectId)) {
-                currentProjectId = allProjectsCache[0].id;
-            }
-            renderSidebarProjects();
-            updateNavbarProjectName();
-            loadAllProjectsTable();
+        let merged = Array.from(projectMap.values());
+
+        // If empty, attempt fetch from Firestore collection "projects"
+        if (merged.length === 0 && window.firebaseAuthClient?.fetchProjectsFromFirestore) {
+            try {
+                const fbProjs = await window.firebaseAuthClient.fetchProjectsFromFirestore();
+                if (fbProjs && fbProjs.length > 0) {
+                    fbProjs.forEach(p => { if (p && p.id) projectMap.set(p.id, p); });
+                    merged = Array.from(projectMap.values());
+                }
+            } catch (e) {}
         }
+
+        // Apply user scoping for non-admin users
+        if (currentUser && currentUser.role !== 'admin') {
+            const myId = currentUser.id;
+            const myEmail = currentUser.email;
+            merged = merged.filter(p => {
+                const isPublic = p.is_public === 1 || p.isPublic === 1 || p.isPublic === true;
+                const isOwner = p.owner_id === myId || p.ownerId === myId || p.owner_email === myEmail;
+                let members = [];
+                try {
+                    members = Array.isArray(p.member_ids) ? p.member_ids : (typeof p.member_ids === 'string' ? JSON.parse(p.member_ids || '[]') : []);
+                } catch (e) { members = []; }
+                const isMember = members.includes(myId) || members.includes(myEmail);
+                return isPublic || isOwner || isMember;
+            });
+        }
+
+        allProjectsCache = merged;
+        localStorage.setItem('life_pms_projects', JSON.stringify(merged));
+
+        const savedProjectId = sessionStorage.getItem('life_pms_project_id');
+        if (savedProjectId && allProjectsCache.some(p => p.id === savedProjectId)) {
+            currentProjectId = savedProjectId;
+        } else if (allProjectsCache.length > 0 && !allProjectsCache.some(p => p.id === currentProjectId)) {
+            currentProjectId = allProjectsCache[0].id;
+        }
+        renderSidebarProjects();
+        updateNavbarProjectName();
+        loadAllProjectsTable();
     } catch (err) {
         console.error('Failed to load projects list:', err);
     }
@@ -2327,9 +2355,31 @@ async function loadTaskSheetView() {
         apiFetch(`/api/v1/tasks/project/${currentProjectId}${currentTasksFilter === 'my' ? '?my=true' : ''}`),
         apiFetch(`/api/v1/task-lists/project/${currentProjectId}`).catch(() => ({ success: false }))
     ]);
-    const tasks = res.data || [];
+    let tasks = (res && res.success && Array.isArray(res.data)) ? [...res.data] : [];
+    const localTasks = JSON.parse(localStorage.getItem('life_pms_tasks') || '[]');
+    const localForProject = localTasks.filter(t => !t.projectId || !t.project_id || t.projectId === currentProjectId || t.project_id === currentProjectId);
+
+    // Merge backend tasks with local tasks (deduplicate by id)
+    const taskMap = new Map();
+    localForProject.forEach(t => { if (t && t.id) taskMap.set(t.id, t); });
+    tasks.forEach(t => { if (t && t.id) taskMap.set(t.id, { ...taskMap.get(t.id), ...t }); });
+
+    tasks = Array.from(taskMap.values()).map(t => ({
+        ...t,
+        task_list_id: t.task_list_id || t.taskListId || 'list-general-internal',
+        project_id: t.project_id || t.projectId || currentProjectId,
+        prefix_key: t.prefix_key || t.prefixKey || (t.sequence_number ? `T-${t.sequence_number}` : 'TASK-1'),
+        owner_ids: Array.isArray(t.owner_ids) ? t.owner_ids : (Array.isArray(t.ownerIds) ? t.ownerIds : (t.assignee_id ? [t.assignee_id] : []))
+    }));
+
     allTasksCache = tasks;
-    const taskLists = (tlRes && tlRes.success && Array.isArray(tlRes.data)) ? tlRes.data : allTaskListsCache;
+    let taskLists = (tlRes && tlRes.success && Array.isArray(tlRes.data) && tlRes.data.length > 0) ? tlRes.data : allTaskListsCache;
+    if (!taskLists || taskLists.length === 0) {
+        taskLists = [
+            { id: 'list-general-internal', name: 'General (Internal)', flag: 'internal' },
+            { id: 'list-general-external', name: 'General (Client Visible)', flag: 'external' }
+        ];
+    }
     allTaskListsCache = taskLists;
 
     if (totalCountEl) totalCountEl.innerHTML = `<span>Total Count : <strong style="color:var(--text-primary); margin-left:4px;">${tasks.length}</strong></span>`;
@@ -2616,7 +2666,15 @@ async function loadProjectIssues() {
         url += '?statusId=closed';
     }
     const res = await apiFetch(url);
-    const issues = res.data || [];
+    let issues = (res && res.success && Array.isArray(res.data)) ? [...res.data] : [];
+    const localIssues = JSON.parse(localStorage.getItem('life_pms_issues') || '[]');
+    const localForProject = localIssues.filter(i => !i.projectId || !i.project_id || i.projectId === currentProjectId || i.project_id === currentProjectId);
+
+    const issueMap = new Map();
+    localForProject.forEach(i => { if (i && i.id) issueMap.set(i.id, i); });
+    issues.forEach(i => { if (i && i.id) issueMap.set(i.id, { ...issueMap.get(i.id), ...i }); });
+
+    issues = Array.from(issueMap.values());
     allIssuesCache = issues;
 
     const tbody = document.getElementById('issuesSheetTbody');
@@ -2762,8 +2820,31 @@ function setupAddIssueModal() {
             closeModal('modalAddIssue');
             document.getElementById('newIssueTitle').value = '';
             document.getElementById('newIssueDescription').value = '';
+
+            const issueItem = res.data || {
+                id: 'issue-' + Date.now().toString(36),
+                projectId: projId,
+                project_id: projId,
+                title,
+                severity,
+                classification,
+                description,
+                status: 'open',
+                prefix_key: 'BUG-' + (allIssuesCache.length + 101),
+                created_at: new Date().toISOString()
+            };
+
+            let localIssues = JSON.parse(localStorage.getItem('life_pms_issues') || '[]');
+            localIssues = localIssues.filter(i => i.id !== issueItem.id);
+            localIssues.unshift(issueItem);
+            localStorage.setItem('life_pms_issues', JSON.stringify(localIssues));
+
+            allIssuesCache = allIssuesCache.filter(i => i.id !== issueItem.id);
+            allIssuesCache.unshift(issueItem);
+
             await loadProjectIssues();
             await loadGlobalDashboardStats();
+            alert(`✓ Bug report "${title}" submitted successfully!`);
         } else {
             alert(res.error || 'Failed to submit bug report.');
         }
@@ -2780,7 +2861,15 @@ function setupAddIssueModal() {
    ========================================================================== */
 async function loadProjectPhasesSheet(projectId) {
     const res = await apiFetch(`/api/v1/phases/project/${projectId}`);
-    const phases = res.data || [];
+    let phases = (res && res.success && Array.isArray(res.data)) ? [...res.data] : [];
+    const localPhases = JSON.parse(localStorage.getItem('life_pms_phases') || '[]');
+    const localForProject = localPhases.filter(p => !p.projectId || !p.project_id || p.projectId === projectId || p.project_id === projectId);
+
+    const phaseMap = new Map();
+    localForProject.forEach(p => { if (p && p.id) phaseMap.set(p.id, p); });
+    phases.forEach(p => { if (p && p.id) phaseMap.set(p.id, { ...phaseMap.get(p.id), ...p }); });
+
+    phases = Array.from(phaseMap.values());
     allPhasesCache = phases;
 
     const tbody = document.getElementById('phasesSheetTbody');
@@ -2918,8 +3007,32 @@ function setupAddPhaseModal() {
             closeModal('modalAddPhase');
             document.getElementById('newPhaseName').value = '';
             document.getElementById('newPhaseDescription').value = '';
+
+            const phaseItem = res.data || {
+                id: 'phase-' + Date.now().toString(36),
+                projectId: currentProjectId,
+                project_id: currentProjectId,
+                name,
+                description,
+                start_date: startDate,
+                end_date: endDate,
+                budget,
+                flag,
+                status: 'open',
+                created_at: new Date().toISOString()
+            };
+
+            let localPhases = JSON.parse(localStorage.getItem('life_pms_phases') || '[]');
+            localPhases = localPhases.filter(p => p.id !== phaseItem.id);
+            localPhases.unshift(phaseItem);
+            localStorage.setItem('life_pms_phases', JSON.stringify(localPhases));
+
+            allPhasesCache = allPhasesCache.filter(p => p.id !== phaseItem.id);
+            allPhasesCache.unshift(phaseItem);
+
             await loadProjectPhasesSheet(currentProjectId);
             await loadGlobalDashboardStats();
+            alert(`✓ Phase "${name}" created successfully!`);
         } else {
             alert(res.error || 'Failed to save milestone.');
         }
@@ -4234,13 +4347,47 @@ function setupAddTaskModal() {
             document.getElementById('newTaskName').value = '';
             document.getElementById('newTaskNote').value = '';
 
+            const taskItem = res.data || {
+                id: 'task-' + Date.now().toString(36),
+                name,
+                projectId: projId,
+                project_id: projId,
+                taskListId: taskListId || 'list-general-internal',
+                task_list_id: taskListId || 'list-general-internal',
+                priority,
+                start_date: startDate || new Date().toISOString().split('T')[0],
+                end_date: endDate || '',
+                owner_ids: ownerId ? [ownerId] : [],
+                status_id: 'open',
+                is_completed: 0,
+                prefix_key: 'T-' + (allTasksCache.length + 1)
+            };
+
+            taskItem.projectId = taskItem.projectId || projId;
+            taskItem.project_id = taskItem.project_id || projId;
+            taskItem.taskListId = taskItem.taskListId || taskListId || 'list-general-internal';
+            taskItem.task_list_id = taskItem.task_list_id || taskListId || 'list-general-internal';
+            taskItem.owner_ids = taskItem.owner_ids || (ownerId ? [ownerId] : []);
+            taskItem.prefix_key = taskItem.prefix_key || taskItem.prefixKey || ('T-' + (allTasksCache.length + 1));
+
+            // Immediately save to local storage
+            let localTasks = JSON.parse(localStorage.getItem('life_pms_tasks') || '[]');
+            localTasks = localTasks.filter(t => t.id !== taskItem.id);
+            localTasks.unshift(taskItem);
+            localStorage.setItem('life_pms_tasks', JSON.stringify(localTasks));
+
+            // Immediately add to memory cache
+            allTasksCache = allTasksCache.filter(t => t.id !== taskItem.id);
+            allTasksCache.unshift(taskItem);
+
             // Dual-sync created task directly to Cloud Firestore collection "tasks"
-            if (window.firebaseAuthClient?.saveTaskToFirestore && res.data) {
-                window.firebaseAuthClient.saveTaskToFirestore(res.data).catch(() => {});
+            if (window.firebaseAuthClient?.saveTaskToFirestore) {
+                window.firebaseAuthClient.saveTaskToFirestore(taskItem).catch(() => {});
             }
 
             await loadCurrentTaskView();
             await loadGlobalDashboardStats();
+            alert(`✓ Task "${taskItem.name}" created and saved successfully!`);
         } else {
             alert(res.error || 'Failed to save task.');
         }
@@ -4487,19 +4634,47 @@ function setupCreateProjectModal() {
                 closeModal('modalCreateProject');
                 form.reset();
 
+                const createdProj = {
+                    ...res.data,
+                    id: res.data.id,
+                    name: res.data.name || name,
+                    key_prefix: res.data.key_prefix || res.data.keyPrefix || keyPrefix,
+                    keyPrefix: res.data.key_prefix || res.data.keyPrefix || keyPrefix,
+                    owner_id: res.data.owner_id || res.data.ownerId || ownerId,
+                    is_public: res.data.is_public !== undefined ? res.data.is_public : isPublic,
+                    isPublic: res.data.is_public !== undefined ? res.data.is_public : isPublic,
+                    start_date: res.data.start_date || startDate,
+                    end_date: res.data.end_date || endDate,
+                    member_ids: res.data.member_ids || [ownerId]
+                };
+
+                // Immediately update local storage so it is never lost
+                let localProjs = JSON.parse(localStorage.getItem('life_pms_projects') || '[]');
+                localProjs = localProjs.filter(p => p.id !== createdProj.id);
+                localProjs.unshift(createdProj);
+                localStorage.setItem('life_pms_projects', JSON.stringify(localProjs));
+
+                // Immediately update memory cache
+                allProjectsCache = allProjectsCache.filter(p => p.id !== createdProj.id);
+                allProjectsCache.unshift(createdProj);
+
+                currentProjectId = createdProj.id;
+                sessionStorage.setItem('life_pms_project_id', currentProjectId);
+
                 // Dual-sync created project directly to Cloud Firestore collection "projects"
                 if (window.firebaseAuthClient?.saveProjectToFirestore) {
-                    window.firebaseAuthClient.saveProjectToFirestore(res.data).catch(() => {});
+                    window.firebaseAuthClient.saveProjectToFirestore(createdProj).catch(() => {});
                 }
 
-                // Refresh projects in state & UI
-                await loadProjectsList();
-                selectProject(res.data.id);
+                // Refresh UI immediately
+                renderSidebarProjects();
+                updateNavbarProjectName();
                 loadAllProjectsTable();
+                selectProject(createdProj.id);
 
                 // Direct to project tasks
                 switchActiveView('tasks');
-                alert(`✓ Project "${name}" (${keyPrefix}) created and saved successfully!`);
+                alert(`✓ Project "${createdProj.name}" created and saved successfully!`);
             } else {
                 alert(`Failed to create project: ${res.error || 'Server error'}`);
             }
