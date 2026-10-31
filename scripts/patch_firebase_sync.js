@@ -306,3 +306,4 @@ if (!code.includes('subscribeToUserData,')) {
 
 fs.writeFileSync('src/public/firebase-auth-client.js', code, 'utf8');
 console.log('firebase-auth-client.js patched successfully!');
+

@@ -116,3 +116,4 @@ if (code.includes(oldIssueSync)) {
 
 fs.writeFileSync('src/public/app.js', code, 'utf8');
 console.log('src/public/app.js patched successfully!');
+
