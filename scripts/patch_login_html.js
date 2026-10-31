@@ -48,3 +48,4 @@ if (code.includes('dual-authenticate Firebase Auth client in browser session') |
     fs.writeFileSync(loginPath, code, 'utf8');
     console.log('✓ Successfully patched src/public/login.html');
 }
+

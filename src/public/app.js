@@ -160,6 +160,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateUserProfileUI();
     applyRoleGuards(currentUserRole);
     await loadInitialData();
+    // Step 2 & 3: Auth-Gated Cross-Device Synchronization Engine
+    if (window.firebaseAuthClient?.subscribeToUserData) {
+        window.firebaseAuthClient.subscribeToUserData({
+            onHydrated: (collectionsData, timestamp) => {
+                console.log('[App Sync] Hydration event received:', collectionsData);
+                if (collectionsData.projects && collectionsData.projects.length > 0) {
+                    allProjectsCache = collectionsData.projects;
+                    localStorage.setItem('life_pms_projects', JSON.stringify(allProjectsCache));
+                    renderSidebarProjects();
+                    loadAllProjectsTable();
+                }
+                if (collectionsData.tasks && collectionsData.tasks.length > 0) {
+                    allTasksCache = collectionsData.tasks;
+                    localStorage.setItem('life_pms_tasks', JSON.stringify(allTasksCache));
+                    loadCurrentTaskView();
+                }
+                if (collectionsData.requests) {
+                    allApprovalsCache = collectionsData.requests;
+                    renderApprovalsTable();
+                }
+            },
+            onDataUpdate: (colName, items, timestamp) => {
+                console.log('[App Sync] Real-time update for ' + colName + ':', items.length);
+                if (colName === 'projects') {
+                    allProjectsCache = items;
+                    localStorage.setItem('life_pms_projects', JSON.stringify(items));
+                    renderSidebarProjects();
+                    loadAllProjectsTable();
+                } else if (colName === 'tasks') {
+                    allTasksCache = items;
+                    localStorage.setItem('life_pms_tasks', JSON.stringify(items));
+                    loadCurrentTaskView();
+                } else if (colName === 'requests') {
+                    allApprovalsCache = items;
+                    renderApprovalsTable();
+                    syncNotificationBadge();
+                }
+            }
+        });
+    }
+
     await fetchIncomingRequests();
     if (window.firebaseAuthClient?.listenToRealtimeNotifications && currentUser?.id) {
         window.firebaseAuthClient.listenToRealtimeNotifications(currentUser.id, () => {
@@ -2472,10 +2513,14 @@ async function loadTaskSheetView() {
     const localTasks = JSON.parse(localStorage.getItem('life_pms_tasks') || '[]');
     const localForProject = localTasks.filter(t => !t.projectId || !t.project_id || t.projectId === currentProjectId || t.project_id === currentProjectId);
 
-    // Merge backend tasks with local tasks (deduplicate by id)
+    // Merge backend tasks with local tasks and memory cache (deduplicate by id)
     const taskMap = new Map();
+    allTasksCache.forEach(t => { if (t && t.id && (!t.projectId || !t.project_id || t.projectId === currentProjectId || t.project_id === currentProjectId)) taskMap.set(t.id, t); });
     localForProject.forEach(t => { if (t && t.id) taskMap.set(t.id, t); });
     tasks.forEach(t => { if (t && t.id) taskMap.set(t.id, { ...taskMap.get(t.id), ...t }); });
+    if (taskMap.size === 0 && allTasksCache.length > 0) {
+        allTasksCache.forEach(t => { if (t && t.id) taskMap.set(t.id, t); });
+    }
 
     tasks = Array.from(taskMap.values()).map(t => ({
         ...t,
@@ -4498,7 +4543,9 @@ function setupAddTaskModal() {
             allTasksCache.unshift(taskItem);
 
             // Dual-sync created task directly to Cloud Firestore collection "tasks"
-            if (window.firebaseAuthClient?.saveTaskToFirestore) {
+            if (window.firebaseAuthClient?.saveUserRecord) {
+                window.firebaseAuthClient.saveUserRecord('tasks', taskItem.id, taskItem).catch(() => {});
+            } else if (window.firebaseAuthClient?.saveTaskToFirestore) {
                 window.firebaseAuthClient.saveTaskToFirestore(taskItem).catch(() => {});
             }
 
@@ -4779,7 +4826,9 @@ function setupCreateProjectModal() {
                 sessionStorage.setItem('life_pms_project_id', currentProjectId);
 
                 // Dual-sync created project directly to Cloud Firestore collection "projects"
-                if (window.firebaseAuthClient?.saveProjectToFirestore) {
+                if (window.firebaseAuthClient?.saveUserRecord) {
+                    window.firebaseAuthClient.saveUserRecord('projects', createdProj.id, createdProj).catch(() => {});
+                } else if (window.firebaseAuthClient?.saveProjectToFirestore) {
                     window.firebaseAuthClient.saveProjectToFirestore(createdProj).catch(() => {});
                 }
 

@@ -9,3 +9,4 @@ emailCode = emailCode.replace(
 );
 fs.writeFileSync(emailTestFile, emailCode, 'utf8');
 console.log('✓ Patched email_sharing.test.js');
+

@@ -255,7 +255,22 @@ class IssuesService {
      * Public bug submission form creating new issue
      */
     static webToIssue(portalId, { projectId, title, descriptionHtml, severity = 'major', classification = 'ui', reporterEmail, reporterName }) {
-        if (!projectId || !title) throw new Error('projectId and title are required.');
+        if (!title) throw new Error('title is required.');
+        if (!projectId) {
+            const defProj = db.queryOne('SELECT id FROM projects WHERE portal_id = ? LIMIT 1', [portalId]);
+            if (defProj) {
+                projectId = defProj.id;
+            } else {
+                const ProjectsService = require('../projects/projects.service');
+                const newP = ProjectsService.createProject({
+                    portalId,
+                    name: 'General Project',
+                    keyPrefix: 'GEN',
+                    isPublic: 1
+                });
+                projectId = newP.id;
+            }
+        }
 
         // Find or create reporter user
         let reporter = reporterEmail ? db.queryOne('SELECT id FROM users WHERE email = ?', [reporterEmail]) : null;

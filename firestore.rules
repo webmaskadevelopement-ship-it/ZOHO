@@ -21,24 +21,18 @@ service cloud.firestore {
       );
     }
 
-    // Users can read basic profiles, only Backend Admin SDK writes roles/connections
+    // Users can read and write their own data tree (Step 4 of Cross-Device Sync)
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if false; // Managed strictly via Express Backend API
+      allow read, write: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == userId);
     }
 
-    // Users can listen to their own real-time notifications
-    match /users/{userId}/notifications/{notifId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == userId);
-      allow write: if false; // Managed strictly via Express Backend API
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == userId);
     }
 
-    // Users can read requests where they are sender or receiver; all writes go through Backend API
+    // In-app requests & collaboration invitations
     match /in_app_requests/{requestId} {
-      allow read: if request.auth != null &&
-        (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid ||
-         resource.data.senderEmail == request.auth.token.email || resource.data.receiverEmail == request.auth.token.email);
-      allow write: if false; // Enforces RBAC & atomic transactions via /api/v1/requests
+      allow read, write: if isAuthenticated();
     }
 
     match /invited_members/{inviteId} {
