@@ -392,3 +392,4 @@ if (code.includes(oldStaticTaskGet)) {
 if (isCRLF) code = code.replace(/\n/g, '\r\n');
 fs.writeFileSync(appPath, code, 'utf8');
 console.log('✓ Saved changes to src/public/app.js');
+

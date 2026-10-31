@@ -165,3 +165,4 @@ if (code.includes(oldAddPhaseSuccess)) {
 if (isCRLF) code = code.replace(/\n/g, '\r\n');
 fs.writeFileSync(appPath, code, 'utf8');
 console.log('Done.');
+
